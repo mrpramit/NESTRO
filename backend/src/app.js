@@ -1,0 +1,29 @@
+import 'dotenv/config'
+import express from "express";
+import cors from 'cors'
+import cookieParser from 'cookie-parser';
+import { connectDB } from './config/connectDB.js';
+const server = express();
+//Router import
+import categoryRouter from "./routers/category.router.js";
+import roomRouter from "./routers/room.router.js";
+import productRouter from "./routers/product.router.js"
+import userRouter from "./routers/user.router.js"
+//JSON Parser
+server.use(express.json());
+//Cookie Parser
+server.use(cookieParser());
+//Cors
+server.use(cors({ origin: "http://localhost:3000", credentials: true }));
+//Router use
+server.use("/api/category", categoryRouter);
+server.use("/api/room-type", roomRouter);
+server.use("/api/product", productRouter);
+server.use("/api/user", userRouter);
+
+
+connectDB().then(() => {
+    server.listen(process.env.PORT,() => {
+        console.log(`Server is running on port ${process.env.PORT}`)
+    })
+});
