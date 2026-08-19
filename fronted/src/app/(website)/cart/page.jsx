@@ -216,15 +216,12 @@ export default function CartPage() {
               )}
 
               {/* Checkout Button */}
-              <button
-                onClick={() => {
-                  alert("Order successfully placed (simulation)!");
-                  dispatch(clearCart());
-                }}
-                className="w-full bg-[#3E2A24] hover:bg-[#2C1C18] text-white py-4 rounded-xl font-bold text-xs tracking-widest uppercase transition-all shadow-sm hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+              <Link
+                href="/checkout"
+                className="w-full bg-[#3E2A24] hover:bg-[#2C1C18] text-white py-4 rounded-xl font-bold text-xs tracking-widest uppercase transition-all shadow-sm hover:scale-[1.02] active:scale-[0.98] cursor-pointer flex items-center justify-center text-center"
               >
                 Proceed to Secure Checkout
-              </button>
+              </Link>
 
               <div className="text-[10px] text-center text-[#8A7973] leading-relaxed font-medium">
                 Security & checkout simulations configured using standard secure SSL patterns. All payments are sandbox simulated.

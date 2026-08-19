@@ -461,5 +461,17 @@ export const deleteUserAccount = async () => {
     }
 };
 
-
-
+export const sendOrderEmail = async (orderPayload) => {
+    try {
+        const response = await client.post("user/send-order-email", orderPayload);
+        return {
+            success: response.data.success,
+            message: response.data.message
+        };
+    } catch (error) {
+        return {
+            success: false,
+            message: error.response?.data?.message || "Internal Server Error"
+        };
+    }
+};

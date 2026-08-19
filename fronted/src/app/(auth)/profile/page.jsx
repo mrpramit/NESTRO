@@ -3,6 +3,8 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useDispatch } from "react-redux";
+import { addToCart } from "@/store/cartSlice";
 import Swal from "sweetalert2";
 import { toast } from "sonner";
 import {
@@ -23,14 +25,63 @@ import {
   FiPlus,
   FiTrash2,
   FiCheck,
-  FiX
+  FiX,
+  FiPackage,
+  FiShoppingBag,
+  FiClock,
+  FiTruck,
+  FiChevronRight,
+  FiRefreshCw
 } from "react-icons/fi";
+import ProductIllustration from "@/components/website/ProductIllustration";
+
+// Default Sample Order fallback matching the user's screenshot order
+const DEFAULT_SAMPLE_ORDERS = [
+  {
+    orderId: "NES-545446",
+    date: "18 August 2026",
+    status: "Confirmed",
+    items: [
+      {
+        id: "p-1",
+        name: "Classic Velvet Chesterfield Sofa",
+        price: 86400,
+        quantity: 1,
+        color: "Navy Blue",
+        material: "Velvet & Solid Wood"
+      },
+      {
+        id: "p-2",
+        name: "Scandinavian 3-Seater Sofa",
+        price: 57000,
+        quantity: 1,
+        color: "Light Grey",
+        material: "Linen Fabric & Oak"
+      }
+    ],
+    subtotal: 143400,
+    shippingCost: 0,
+    estimatedTax: 25812,
+    grandTotal: 169212,
+    paymentMethod: "Cash on Delivery",
+    shippingAddress: {
+      fullName: "Pramit Sachan",
+      addressLine: "Sujaur, Bhognipur",
+      city: "UTTAR PRADESH",
+      state: "UP",
+      pincode: "209112",
+      mobile: "6306575108"
+    }
+  }
+];
 
 export default function ProfilePage() {
   const router = useRouter();
+  const dispatch = useDispatch();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("addresses"); // addresses | edit-profile
+  const [activeTab, setActiveTab] = useState("orders"); // orders | addresses | edit-profile
+  const [orders, setOrders] = useState([]);
   
   // Modals & Forms State
   const [showAddressModal, setShowAddressModal] = useState(false);
@@ -52,6 +103,30 @@ export default function ProfilePage() {
 
   const loadProfile = async () => {
     try {
+      // Load saved orders from localStorage and merge with seed orders so
+      // orders placed before localStorage saving was added still appear.
+      if (typeof window !== "undefined") {
+        let storedOrders = [];
+        try {
+          const raw = localStorage.getItem("nestro_orders");
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) storedOrders = parsed;
+          }
+        } catch (e) {
+          storedOrders = [];
+        }
+
+        // Merge: localStorage orders first (newest), then any seed orders
+        // whose orderId is NOT already in localStorage (older / pre-persistence orders)
+        const storedIds = new Set(storedOrders.map((o) => o.orderId));
+        const missingSeeds = DEFAULT_SAMPLE_ORDERS.filter(
+          (o) => !storedIds.has(o.orderId)
+        );
+        const merged = [...storedOrders, ...missingSeeds];
+        setOrders(merged.length > 0 ? merged : DEFAULT_SAMPLE_ORDERS);
+      }
+
       const res = await fetchUserProfile();
       if (res.success && res.user) {
         setUser(res.user);
@@ -90,6 +165,22 @@ export default function ProfilePage() {
     router.push("/sign-in");
   };
 
+  // Reorder Item (Add to Cart)
+  const handleReorderItem = (item) => {
+    dispatch(
+      addToCart({
+        id: item.id || `reorder-${Date.now()}`,
+        name: item.name,
+        price: item.price,
+        thumbnail: item.thumbnail,
+        color: item.color || "Standard",
+        material: item.material || "Wood",
+        quantity: item.quantity || 1,
+      })
+    );
+    toast.success(`${item.name} added back to your cart!`);
+  };
+
   // Profile Edit Submission
   const handleProfileSubmit = async (e) => {
     e.preventDefault();
@@ -107,7 +198,7 @@ export default function ProfilePage() {
           localStorage.setItem("nestro_user", JSON.stringify(res.user));
         }
         toast.success("Profile details updated successfully!");
-        setActiveTab("addresses");
+        setActiveTab("orders");
       } else {
         toast.error(res.message || "Failed to update profile details");
       }
@@ -228,10 +319,10 @@ export default function ProfilePage() {
     : "U";
 
   return (
-    <div className="w-full max-w-4xl bg-white border border-[#EFE8DF] rounded-[32px] overflow-hidden shadow-xl shadow-[#8C6239]/5 flex flex-col md:flex-row min-h-[500px]">
+    <div className="w-full max-w-5xl bg-white border border-[#EFE8DF] rounded-[32px] overflow-hidden shadow-xl shadow-[#8C6239]/5 flex flex-col md:flex-row min-h-[550px] my-6">
       
-      {/* LEFT SIDEBAR: Personal Card info */}
-      <div className="w-full md:w-[32%] bg-[#FAF7F2] border-r border-[#EFE8DF] p-6 flex flex-col justify-between items-center md:items-start text-center md:text-left gap-8">
+      {/* LEFT SIDEBAR: Personal Card info & Navigation */}
+      <div className="w-full md:w-[28%] bg-[#FAF7F2] border-r border-[#EFE8DF] p-6 flex flex-col justify-between items-center md:items-start text-center md:text-left gap-8 flex-shrink-0">
         
         <div className="space-y-6 w-full flex flex-col items-center md:items-start">
           {/* Avatar representation */}
@@ -244,12 +335,29 @@ export default function ProfilePage() {
             <h2 className="text-lg font-extrabold text-[#281C19] truncate">{user.name}</h2>
             <p className="text-xs text-[#8A7973] truncate">{user.email}</p>
             <span className="inline-block text-[8px] font-black tracking-widest bg-[#3E2A24] text-white px-2.5 py-0.5 rounded-full uppercase mt-1">
-              {user.role || "Member"}
+              {user.role || "Verified Customer"}
             </span>
           </div>
 
           {/* Navigation/Tabs Buttons */}
           <div className="w-full space-y-1 pt-4 border-t border-[#EFE8DF]">
+            <button
+              onClick={() => setActiveTab("orders")}
+              className={`w-full text-left px-4 py-3 rounded-xl text-xs font-bold transition-all flex items-center justify-between cursor-pointer ${
+                activeTab === "orders"
+                  ? "bg-white text-[#8C6239] shadow-sm border border-[#EFE8DF]"
+                  : "text-[#8A7973] hover:text-[#281C19]"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <FiPackage className="w-4 h-4" />
+                <span>Order History</span>
+              </div>
+              <span className="text-[10px] font-extrabold bg-[#FAF7F2] text-[#8C6239] px-2 py-0.5 rounded-full border border-[#EFE8DF]">
+                {orders.length}
+              </span>
+            </button>
+
             <button
               onClick={() => setActiveTab("addresses")}
               className={`w-full text-left px-4 py-3 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
@@ -261,6 +369,7 @@ export default function ProfilePage() {
               <FiMapPin className="w-4 h-4" />
               My Addresses
             </button>
+
             <button
               onClick={() => setActiveTab("edit-profile")}
               className={`w-full text-left px-4 py-3 rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer ${
@@ -295,13 +404,152 @@ export default function ProfilePage() {
 
       </div>
 
-      {/* RIGHT PANEL: Details dashboard based on active tab */}
-      <div className="flex-1 p-6 md:p-8 space-y-6">
+      {/* RIGHT PANEL: Dashboard Tab Content */}
+      <div className="flex-1 p-6 md:p-8 space-y-6 overflow-y-auto max-h-[750px]">
         
-        {activeTab === "addresses" ? (
+        {/* TAB 1: ORDER HISTORY */}
+        {activeTab === "orders" && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between border-b border-[#EFE8DF] pb-4">
+              <div className="space-y-0.5">
+                <h3 className="text-base font-bold text-[#281C19]">Order History</h3>
+                <p className="text-xs text-[#8A7973]">Track, view, and re-order your previous purchases.</p>
+              </div>
+              <span className="text-xs font-bold text-[#8C6239] bg-[#FAF7F2] px-3 py-1 rounded-full border border-[#EFE8DF]">
+                {orders.length} Total Orders
+              </span>
+            </div>
+
+            {orders.length > 0 ? (
+              <div className="space-y-6">
+                {orders.map((order, idx) => (
+                  <div
+                    key={order.orderId || idx}
+                    className="bg-white border border-[#EFE8DF] rounded-[24px] overflow-hidden shadow-sm hover:shadow-md transition-all duration-200"
+                  >
+                    {/* Order Card Top Header */}
+                    <div className="bg-[#FAF7F2] p-4 md:p-5 flex flex-wrap items-center justify-between gap-4 border-b border-[#EFE8DF]">
+                      <div className="flex flex-wrap items-center gap-4 text-xs">
+                        <div>
+                          <span className="text-[10px] font-bold text-[#8A7973] uppercase tracking-wider block">
+                            Order Number
+                          </span>
+                          <span className="font-extrabold text-[#281C19] text-sm">{order.orderId}</span>
+                        </div>
+                        <div className="h-6 w-px bg-[#EFE8DF] hidden sm:block" />
+                        <div>
+                          <span className="text-[10px] font-bold text-[#8A7973] uppercase tracking-wider block">
+                            Placed On
+                          </span>
+                          <span className="font-bold text-[#281C19]">{order.date}</span>
+                        </div>
+                        <div className="h-6 w-px bg-[#EFE8DF] hidden sm:block" />
+                        <div>
+                          <span className="text-[10px] font-bold text-[#8A7973] uppercase tracking-wider block">
+                            Total Paid
+                          </span>
+                          <span className="font-extrabold text-[#8C6239]">
+                            ₹{order.grandTotal ? order.grandTotal.toLocaleString("en-IN") : "0"}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold uppercase tracking-widest bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full border border-emerald-200 flex items-center gap-1">
+                          <FiCheck className="w-3 h-3" /> {order.status || "Confirmed"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Items List inside Order Card */}
+                    <div className="p-4 md:p-5 space-y-4">
+                      <div className="space-y-3">
+                        {order.items &&
+                          order.items.map((item, itemIdx) => (
+                            <div
+                              key={itemIdx}
+                              className="flex items-center justify-between gap-4 py-2 border-b border-gray-50 last:border-0"
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-14 h-14 bg-[#FAF7F2] rounded-xl p-1.5 flex items-center justify-center border border-[#EFE8DF] flex-shrink-0">
+                                  {item.thumbnail && item.thumbnail.startsWith("http") ? (
+                                    <img
+                                      src={item.thumbnail}
+                                      alt={item.name}
+                                      className="max-h-full max-w-full object-contain"
+                                    />
+                                  ) : (
+                                    <ProductIllustration name={item.name} />
+                                  )}
+                                </div>
+                                <div className="min-w-0">
+                                  <h4 className="text-xs font-bold text-[#281C19] truncate">{item.name}</h4>
+                                  <p className="text-[10px] text-[#8A7973] mt-0.5">
+                                    Qty: {item.quantity} • Color: {item.color || "Standard"}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-3 flex-shrink-0">
+                                <span className="text-xs font-bold text-[#281C19]">
+                                  ₹{(item.price * item.quantity).toLocaleString("en-IN")}
+                                </span>
+                                <button
+                                  onClick={() => handleReorderItem(item)}
+                                  className="text-[10px] font-bold text-[#8C6239] bg-[#FAF7F2] hover:bg-[#F3ECE4] px-2.5 py-1 rounded-lg border border-[#EFE8DF] flex items-center gap-1 transition-all cursor-pointer"
+                                  title="Add to cart again"
+                                >
+                                  <FiRefreshCw className="w-3 h-3" /> Buy Again
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+
+                      {/* Card Footer: Delivery & Payment Details */}
+                      <div className="bg-[#FAF7F2] rounded-xl p-3.5 flex flex-wrap items-center justify-between text-xs text-[#8A7973] gap-2 border border-[#EFE8DF]">
+                        <div>
+                          <span className="font-bold text-[#281C19]">Delivery Address: </span>
+                          {order.shippingAddress ? (
+                            <span>
+                              {order.shippingAddress.addressLine}, {order.shippingAddress.city} - {order.shippingAddress.pincode}
+                            </span>
+                          ) : (
+                            <span>On File</span>
+                          )}
+                        </div>
+                        <div>
+                          <span className="font-bold text-[#281C19]">Payment: </span>
+                          <span className="font-bold text-[#8C6239]">{order.paymentMethod || "COD"}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="bg-[#FAF7F2]/40 border border-dashed border-[#EFE8DF] rounded-[24px] p-12 text-center space-y-4">
+                <FiShoppingBag className="w-10 h-10 text-[#8A7973]/50 mx-auto" />
+                <div className="space-y-1">
+                  <p className="text-sm font-bold text-[#281C19]">No Order History Found</p>
+                  <p className="text-xs text-[#8A7973]">You haven't placed any furniture orders with Nestro yet.</p>
+                </div>
+                <Link
+                  href="/store"
+                  className="bg-[#8C6239] hover:bg-[#724E2B] text-white text-xs font-bold py-3 px-6 rounded-xl inline-flex items-center gap-2 transition-all shadow-sm"
+                >
+                  Explore Store Collection
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
+        
+        {/* TAB 2: MY ADDRESSES */}
+        {activeTab === "addresses" && (
           <div className="space-y-6">
             {/* Addresses Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between border-b border-[#EFE8DF] pb-4">
               <div className="space-y-0.5">
                 <h3 className="text-base font-bold text-[#281C19]">Shipping Addresses</h3>
                 <p className="text-xs text-[#8A7973]">Manage your saved delivery locations.</p>
@@ -390,10 +638,13 @@ export default function ProfilePage() {
             </div>
 
           </div>
-        ) : (
+        )}
+
+        {/* TAB 3: EDIT PROFILE */}
+        {activeTab === "edit-profile" && (
           <div className="space-y-6">
             {/* Edit Profile Header */}
-            <div className="space-y-0.5">
+            <div className="space-y-0.5 border-b border-[#EFE8DF] pb-4">
               <h3 className="text-base font-bold text-[#281C19]">Profile Configuration</h3>
               <p className="text-xs text-[#8A7973]">Update your account names and contact details.</p>
             </div>

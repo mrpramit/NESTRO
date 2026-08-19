@@ -219,6 +219,27 @@ const deleteAccount = async (req, res) => {
     }
 }
 
+import sendOrderConfirmationMail from "../utils/sendOrderConfirmationMail.js";
+
+const sendOrderEmail = async (req, res) => {
+    try {
+        const { email, orderData } = req.body;
+        if (!email || !orderData) {
+            return sendBadRequest(res, "Email and order data are required");
+        }
+
+        const result = await sendOrderConfirmationMail(email, orderData);
+        if (result.success) {
+            return sendSuccess(res, "Order confirmation email sent successfully", result);
+        } else {
+            return sendServerError(res, "Failed to send order email: " + result.error);
+        }
+    } catch (error) {
+        console.log("Send Order Email Error:", error);
+        sendServerError(res, "Internal Server Error");
+    }
+};
+
 export {
     register,
     verifyOtp,
@@ -229,5 +250,6 @@ export {
     addAddress,
     deleteAddress,
     setDefaultAddress,
-    deleteAccount
+    deleteAccount,
+    sendOrderEmail
 }
