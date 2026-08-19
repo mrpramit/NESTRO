@@ -130,6 +130,14 @@ export const deleteCategory = async (id) => {
     }
 };
 
+// User / Profile API aliases (use existing user-specific functions below)
+export const fetchProfile = (...args) => fetchUserProfile(...args);
+export const updateProfile = (payload) => updateUserProfile(payload);
+export const addAddressApi = (payload) => addUserAddress(payload);
+export const deleteAddressApi = (addressId) => deleteUserAddress(addressId);
+export const setDefaultAddressApi = (addressId) => setUserDefaultAddress(addressId);
+export const deleteAccountApi = () => deleteUserAccount();
+
 export const toggleCategoryStatus = async (id) => {
     try {
         const response = await client.put(`category/status-update/${id}`);
@@ -210,7 +218,7 @@ export const fetchProducts = async (params = {}) => {
         };
     }
 };
-
+                // Removed extra closing brace
 export const fetchProductById = async (id) => {
     try {
         const response = await client.get(`product/${id}`);

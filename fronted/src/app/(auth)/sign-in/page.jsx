@@ -60,7 +60,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="w-full max-w-[440px] bg-white border border-[#EFE8DF] rounded-[24px] p-6 md:p-8 shadow-xl shadow-[#8C6239]/4 space-y-6">
+    <div className="w-full max-w-[440px] bg-white border border-[#EFE8DF] rounded-[24px] p-5 md:p-6 shadow-xl shadow-[#8C6239]/4 space-y-4">
       {/* Segmented Switcher Tabs */}
       <div className="bg-[#F3ECE4]/50 p-1 rounded-xl flex w-full">
         <Link
@@ -175,6 +175,28 @@ export default function LoginPage() {
             Create one free
           </Link>
         </p>
+      </div>
+
+      {/* Admin Login Divider */}
+      <div className="relative flex items-center justify-center py-0.5">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-[#EFE8DF]"></div>
+        </div>
+        <span className="relative bg-white px-3 text-[9px] font-bold text-[#8A7973]/60 uppercase tracking-wider">Admin</span>
+      </div>
+
+      {/* Admin Login Link */}
+      <div className="text-center">
+        <Link
+          href="/admin-login"
+          id="admin-login-link"
+          className="inline-flex items-center gap-1.5 text-[10px] font-bold text-[#8A7973] hover:text-[#281C19] border border-[#EFE8DF] hover:border-[#8C6239]/40 rounded-lg px-4 py-2 transition-all hover:bg-[#FAF7F2]/50 group"
+        >
+          <svg className="w-3 h-3 text-[#8C6239] group-hover:scale-110 transition-transform" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+          </svg>
+          Admin Login
+        </Link>
       </div>
     </div>
   );

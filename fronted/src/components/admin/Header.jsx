@@ -1,6 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { fetchProfile } from "@/utils/api";
 import {
   MenuIcon,
   SearchIcon,
@@ -8,7 +10,7 @@ import {
   MoonIcon,
   BellIcon,
   MessageIcon,
-  ChevronDownIcon
+  ChevronDownIcon,
 } from "./Icons";
 
 export default function Header({
@@ -17,12 +19,33 @@ export default function Header({
   sidebarCollapsed,
   setSidebarCollapsed,
   darkMode,
-  setDarkMode
+  setDarkMode,
 }) {
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [notifDropdownOpen, setNotifDropdownOpen] = useState(false);
   const profileRef = useRef(null);
   const notifRef = useRef(null);
+  const [profileData, setProfileData] = useState(null);
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    setProfileDropdownOpen(false);
+    // Try calling a backend logout endpoint if available to clear httpOnly cookie
+    try {
+      await fetch("/api/user/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch (e) {
+      // ignore errors (endpoint may not exist)
+    }
+    // Clear any client-side state if used (localStorage/sessionStorage)
+    try {
+      localStorage.removeItem("persist:root");
+    } catch (e) {}
+    // Navigate immediately to sign-in page
+    router.push("/sign-in");
+  };
 
   // Close dropdowns on clicking outside
   useEffect(() => {
@@ -38,10 +61,27 @@ export default function Header({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    let mounted = true;
+    const loadProfile = async () => {
+      try {
+        const res = await fetchProfile();
+        if (mounted && res && res.success) {
+          setProfileData(res.user || res.data || null);
+        }
+      } catch (e) {
+        // ignore
+      }
+    };
+    loadProfile();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   return (
     <header className="sticky top-0 z-30 flex w-full bg-white dark:bg-[#1c2434] border-b border-[#e2e8f0] dark:border-[#2e3a47] drop-shadow-1 dark:drop-shadow-none transition-colors duration-300">
       <div className="flex flex-grow items-center justify-between px-4 py-4 shadow-2 md:px-6 2xl:px-11">
-        
         {/* Left Side: Burger Menu & Search */}
         <div className="flex items-center gap-3 mr-4">
           {/* Hamburger toggle */}
@@ -60,7 +100,6 @@ export default function Header({
           </button>
         </div>
 
-
         {/* Search Command Input */}
         <div className="hidden sm:block">
           <form action="" method="POST">
@@ -74,7 +113,8 @@ export default function Header({
                 className="w-full bg-transparent pl-9 pr-4 text-black focus:outline-none dark:text-white xl:w-125 placeholder:text-slate-400 dark:placeholder:text-slate-400"
               />
               <span className="absolute right-0 top-1/2 -translate-y-1/2 hidden md:inline-flex items-center gap-1 rounded bg-[#f1f5f9] dark:bg-[#24303f] px-1.5 py-0.5 text-xs font-medium text-slate-400 dark:text-slate-300 border border-[#e2e8f0] dark:border-[#2e3a47]">
-                <span>⌘</span><span>K</span>
+                <span>⌘</span>
+                <span>K</span>
               </span>
             </div>
           </form>
@@ -91,7 +131,11 @@ export default function Header({
                 className="relative flex h-8.5 w-8.5 items-center justify-center rounded-full border border-[#e2e8f0] bg-[#f7f9fc] hover:text-blue-600 dark:border-[#2e3a47] dark:bg-[#24303f] dark:hover:text-blue-400 text-black dark:text-white transition-colors"
                 aria-label="Toggle Theme"
               >
-                {darkMode ? <SunIcon className="w-5 h-5" /> : <MoonIcon className="w-5 h-5" />}
+                {darkMode ? (
+                  <SunIcon className="w-5 h-5" />
+                ) : (
+                  <MoonIcon className="w-5 h-5" />
+                )}
               </button>
             </li>
 
@@ -110,23 +154,35 @@ export default function Header({
               {notifDropdownOpen && (
                 <div className="absolute -right-27 mt-2.5 flex h-90 w-75 flex-col rounded-sm border border-[#e2e8f0] bg-white shadow-default dark:border-[#2e3a47] dark:bg-[#1c2434] sm:right-0 sm:w-80 transition-all duration-300">
                   <div className="px-4.5 py-3 border-b border-[#e2e8f0] dark:border-[#2e3a47]">
-                    <h5 className="text-sm font-medium text-slate-500 dark:text-slate-300">Notification</h5>
+                    <h5 className="text-sm font-medium text-slate-500 dark:text-slate-300">
+                      Notification
+                    </h5>
                   </div>
                   <ul className="flex h-auto flex-col overflow-y-auto divide-y divide-[#e2e8f0] dark:divide-[#2e3a47]">
                     <li>
-                      <a className="flex flex-col gap-2.5 border-t border-[#e2e8f0] px-4.5 py-3 hover:bg-[#f7f9fc] dark:border-[#2e3a47] dark:hover:bg-[#24303f]" href="#">
+                      <a
+                        className="flex flex-col gap-2.5 border-t border-[#e2e8f0] px-4.5 py-3 hover:bg-[#f7f9fc] dark:border-[#2e3a47] dark:hover:bg-[#24303f]"
+                        href="#"
+                      >
                         <p className="text-sm text-black dark:text-white">
-                          <span className="text-black font-semibold dark:text-white">Edit your information in a minutes</span>
-                          {" "}Scribble some words in user profile page.
+                          <span className="text-black font-semibold dark:text-white">
+                            Edit your information in a minutes
+                          </span>{" "}
+                          Scribble some words in user profile page.
                         </p>
                         <p className="text-xs text-[#8a99ad]">12 May, 2026</p>
                       </a>
                     </li>
                     <li>
-                      <a className="flex flex-col gap-2.5 border-t border-[#e2e8f0] px-4.5 py-3 hover:bg-[#f7f9fc] dark:border-[#2e3a47] dark:hover:bg-[#24303f]" href="#">
+                      <a
+                        className="flex flex-col gap-2.5 border-t border-[#e2e8f0] px-4.5 py-3 hover:bg-[#f7f9fc] dark:border-[#2e3a47] dark:hover:bg-[#24303f]"
+                        href="#"
+                      >
                         <p className="text-sm text-black dark:text-white">
-                          <span className="text-black font-semibold dark:text-white">New layout uploaded</span>
-                          {" "}Check layouts panel to check out premium pages.
+                          <span className="text-black font-semibold dark:text-white">
+                            New layout uploaded
+                          </span>{" "}
+                          Check layouts panel to check out premium pages.
                         </p>
                         <p className="text-xs text-[#8a99ad]">24 Feb, 2026</p>
                       </a>
@@ -138,9 +194,7 @@ export default function Header({
 
             {/* Messages Panel */}
             <li className="relative">
-              <button
-                className="relative flex h-8.5 w-8.5 items-center justify-center rounded-full border border-[#e2e8f0] bg-[#f7f9fc] text-black hover:text-blue-600 dark:border-[#2e3a47] dark:bg-[#24303f] dark:text-white dark:hover:text-blue-400 transition-colors"
-              >
+              <button className="relative flex h-8.5 w-8.5 items-center justify-center rounded-full border border-[#e2e8f0] bg-[#f7f9fc] text-black hover:text-blue-600 dark:border-[#2e3a47] dark:bg-[#24303f] dark:text-white dark:hover:text-blue-400 transition-colors">
                 <span className="absolute -top-0.5 -right-0.5 z-1 h-2 w-2 rounded-full bg-emerald-500"></span>
                 <MessageIcon className="w-5 h-5" />
               </button>
@@ -155,16 +209,24 @@ export default function Header({
             >
               <span className="hidden text-right lg:block">
                 <span className="block text-sm font-medium text-black dark:text-white">
-                  Musharof
+                  {profileData?.name || "Admin"}
                 </span>
                 <span className="block text-xs text-[#8a99ad]">
-                  Admin Specialist
+                  {profileData?.role || "Admin Specialist"}
                 </span>
               </span>
 
               {/* User Avatar */}
               <div className="h-10 w-10 rounded-full overflow-hidden border border-[#e2e8f0] dark:border-[#2e3a47] bg-blue-100 flex items-center justify-center">
-                <span className="font-semibold text-blue-600">MU</span>
+                <span className="font-semibold text-blue-600">
+                  {profileData && profileData.name
+                    ? profileData.name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .slice(0, 2)
+                        .join("")
+                    : "MU"}
+                </span>
               </div>
 
               <ChevronDownIcon className="hidden sm:block w-4 h-4 text-slate-400 dark:text-slate-300" />
@@ -175,17 +237,26 @@ export default function Header({
               <div className="absolute right-0 mt-4 flex w-62.5 flex-col rounded-sm border border-[#e2e8f0] bg-white shadow-default dark:border-[#2e3a47] dark:bg-[#1c2434] transition-all duration-300">
                 <ul className="flex flex-col gap-5 border-b border-[#e2e8f0] px-6 py-5 dark:border-[#2e3a47]">
                   <li>
-                    <a className="flex items-center gap-3.5 text-sm font-medium text-black dark:text-white duration-300 ease-in-out hover:text-blue-500" href="/admin/profile">
+                    <a
+                      className="flex items-center gap-3.5 text-sm font-medium text-black dark:text-white duration-300 ease-in-out hover:text-blue-500"
+                      href="/admin/profile"
+                    >
                       My Profile
                     </a>
                   </li>
                   <li>
-                    <a className="flex items-center gap-3.5 text-sm font-medium text-black dark:text-white duration-300 ease-in-out hover:text-blue-500" href="/admin/settings">
+                    <a
+                      className="flex items-center gap-3.5 text-sm font-medium text-black dark:text-white duration-300 ease-in-out hover:text-blue-500"
+                      href="/admin/settings"
+                    >
                       Account Settings
                     </a>
                   </li>
                 </ul>
-                <button className="flex items-center gap-3.5 px-6 py-4 text-sm font-medium text-slate-500 hover:text-red-500 dark:text-slate-300 dark:hover:text-red-400 transition-colors">
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-3.5 px-6 py-4 text-sm font-medium text-slate-500 hover:text-red-500 dark:text-slate-300 dark:hover:text-red-400 transition-colors"
+                >
                   Log Out
                 </button>
               </div>

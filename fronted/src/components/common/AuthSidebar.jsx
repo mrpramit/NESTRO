@@ -5,7 +5,7 @@ import Link from "next/link";
 
 export default function AuthSidebar() {
   return (
-    <div className="w-full lg:w-[45%] bg-[#281C19] text-[#FAF7F2] p-8 md:p-10 lg:p-12 flex flex-col justify-center gap-8 md:gap-10 lg:gap-12 relative overflow-hidden flex-shrink-0 min-h-[320px] lg:h-full lg:min-h-0">
+    <div className="w-full lg:w-[45%] bg-[#281C19] text-[#FAF7F2] p-8 md:p-10 lg:p-12 flex flex-col justify-center gap-8 md:gap-10 lg:gap-12 relative overflow-hidden flex-shrink-0 min-h-[320px] lg:min-h-screen lg:self-stretch">
       {/* Background glow flares */}
       <div className="absolute top-0 left-0 w-96 h-96 bg-[#8C6239]/10 rounded-full blur-[100px] pointer-events-none" />
       <div className="absolute bottom-0 right-0 w-96 h-96 bg-[#FAF7F2]/5 rounded-full blur-[100px] pointer-events-none" />
