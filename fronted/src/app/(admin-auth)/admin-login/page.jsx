@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import { loginUser } from "@/utils/api";
+import { loginAdmin } from "@/utils/api";
 import { toast } from "sonner";
 import { FiEye, FiEyeOff, FiShield, FiLock, FiMail } from "react-icons/fi";
 
@@ -25,7 +25,7 @@ export default function AdminLoginPage() {
 
     try {
       setLoading(true);
-      const res = await loginUser(formData);
+      const res = await loginAdmin(formData);
 
       if (res.success) {
         const user = res.data?.user;
@@ -97,7 +97,9 @@ export default function AdminLoginPage() {
             </p>
           </div>
 
-          <h2 className="text-lg font-bold text-white mb-1">Sign in to Dashboard</h2>
+          <h2 className="text-lg font-bold text-white mb-1">
+            Sign in to Dashboard
+          </h2>
           <p className="text-xs text-[#8A7973] mb-6">
             Enter your admin credentials to continue.
           </p>

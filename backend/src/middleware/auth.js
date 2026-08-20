@@ -1,11 +1,11 @@
 import {sendServerError} from "../utils/response.js"
 import UserModel from "../models/user.models.js"
 import jwt from "jsonwebtoken";
-export const protect = async (req, res, next) => {
+const protectWithCookie = (cookieName, allowedRoles = null) => async (req, res, next) => {
     try {
         let token = null;
-        if(req.cookies && req.cookies.jwt) {
-            token = req.cookies.jwt;
+        if(req.cookies && req.cookies[cookieName]) {
+            token = req.cookies[cookieName];
         }
 
         if(!token && req.headers.authorization ) {
@@ -21,6 +21,14 @@ export const protect = async (req, res, next) => {
         if (!user) {
             return res.status(401).json({ success: false, message: "Unauthorized" });
         }
+
+        if (user.status === false) {
+            return res.status(403).json({ success: false, message: "Account is inactive" });
+        }
+
+        if (allowedRoles && !allowedRoles.includes(user.role)) {
+            return res.status(403).json({ success: false, message: "Forbidden" });
+        }
         
         req.user = user;
         next();
@@ -30,6 +38,9 @@ export const protect = async (req, res, next) => {
         sendServerError(res, "Internal Server Error")
     }
 };
+
+export const protect = protectWithCookie("jwt", ["user"]);
+export const protectAdmin = protectWithCookie("admin_jwt", ["admin", "superAdmin"]);
 
 
 

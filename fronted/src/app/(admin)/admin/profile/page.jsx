@@ -3,12 +3,12 @@
 import React, { useEffect, useState } from "react";
 import { Toaster, toast } from "sonner";
 import {
-  fetchProfile,
-  updateProfile,
-  addAddressApi,
-  deleteAddressApi,
-  setDefaultAddressApi,
-  deleteAccountApi,
+  fetchAdminProfile,
+  updateAdminProfile,
+  deleteAdminProfile,
+  addAdminAddress,
+  deleteAdminAddress,
+  setAdminDefaultAddress,
 } from "@/utils/api";
 
 export default function AdminProfilePage() {
@@ -28,7 +28,7 @@ export default function AdminProfilePage() {
 
   const load = async () => {
     setLoading(true);
-    const res = await fetchProfile();
+    const res = await fetchAdminProfile();
     if (res && res.success) {
       const user = res.user || res.data || null;
       setProfile(user);
@@ -44,12 +44,19 @@ export default function AdminProfilePage() {
   };
 
   useEffect(() => {
-    load();
+    const timeoutId = setTimeout(() => {
+      load();
+    }, 0);
+
+    return () => clearTimeout(timeoutId);
   }, []);
 
   const handleUpdate = async (e) => {
     e.preventDefault();
-    const res = await updateProfile({ name: form.name, mobile: form.mobile });
+    const res = await updateAdminProfile({
+      name: form.name,
+      mobile: form.mobile,
+    });
     if (res.success) {
       toast.success(res.message || "Profile updated");
       await load();
@@ -61,7 +68,7 @@ export default function AdminProfilePage() {
   const handleAddAddress = async (e) => {
     e.preventDefault();
     const payload = { ...addressForm };
-    const res = await addAddressApi(payload);
+    const res = await addAdminAddress(payload);
     if (res.success) {
       toast.success(res.message || "Address added");
       setAddressForm({
@@ -82,7 +89,7 @@ export default function AdminProfilePage() {
 
   const handleDeleteAddress = async (id) => {
     if (!confirm("Delete this address?")) return;
-    const res = await deleteAddressApi(id);
+    const res = await deleteAdminAddress(id);
     if (res.success) {
       toast.success(res.message || "Address deleted");
       await load();
@@ -92,7 +99,7 @@ export default function AdminProfilePage() {
   };
 
   const handleSetDefault = async (id) => {
-    const res = await setDefaultAddressApi(id);
+    const res = await setAdminDefaultAddress(id);
     if (res.success) {
       toast.success(res.message || "Default set");
       await load();
@@ -108,7 +115,7 @@ export default function AdminProfilePage() {
       )
     )
       return;
-    const res = await deleteAccountApi();
+    const res = await deleteAdminProfile();
     if (res.success) {
       toast.success(res.message || "Account deleted");
       // Reload to reflect logged out state
@@ -118,212 +125,310 @@ export default function AdminProfilePage() {
     }
   };
 
-  if (loading) return <div className="p-6">Loading...</div>;
+  if (loading) {
+    return (
+      <div className="flex min-h-80 items-center justify-center text-sm text-slate-400">
+        Loading profile...
+      </div>
+    );
+  }
+
+  const initials = (profile?.name || "Admin")
+    .split(" ")
+    .map((part) => part[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+
+  const inputClass =
+    "mt-2 w-full rounded-sm border border-[#2e3a47] bg-[#121824] px-4 py-3 text-sm text-white outline-none transition-colors placeholder:text-slate-500 focus:border-blue-500 disabled:cursor-not-allowed disabled:text-slate-500";
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <Toaster position="top-center" richColors />
+    <div className="mx-auto max-w-screen-xl space-y-6">
+      <Toaster position="top-right" richColors />
 
-      <h1 className="text-2xl font-semibold mb-4">Admin Profile</h1>
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-400">
+          Account settings
+        </p>
+        <h1 className="mt-1 text-2xl font-bold text-white md:text-3xl">
+          Admin Profile
+        </h1>
+        <p className="mt-1 text-sm text-slate-400">
+          Manage your administrator identity and saved addresses.
+        </p>
+      </div>
 
-      <form
-        onSubmit={handleUpdate}
-        className="bg-white p-6 rounded shadow mb-6"
-      >
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium">Name</label>
-            <input
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              className="mt-1 w-full border rounded px-3 py-2"
-            />
+      <div className="grid gap-6 xl:grid-cols-[280px_minmax(0,1fr)]">
+        <aside className="h-fit rounded-sm border border-[#2e3a47] bg-[#1c2434] p-6">
+          <div className="flex items-center gap-4 xl:block">
+            <div className="flex h-20 w-20 items-center justify-center rounded-full border-4 border-[#24303f] bg-blue-500/15 text-2xl font-bold text-blue-400">
+              {initials}
+            </div>
+            <div className="mt-0 xl:mt-5">
+              <h2 className="text-lg font-semibold text-white">
+                {profile?.name || "Admin"}
+              </h2>
+              <p className="mt-1 break-all text-xs text-slate-400">
+                {profile?.email || "No email"}
+              </p>
+              <span className="mt-4 inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-400">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
+                {profile?.role || "Administrator"}
+              </span>
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium">Email</label>
-            <input
-              value={form.email}
-              disabled
-              className="mt-1 w-full border rounded px-3 py-2 bg-gray-50"
-            />
+          <div className="mt-6 border-t border-[#2e3a47] pt-5 text-xs text-slate-400">
+            <div className="flex items-center justify-between">
+              <span>Account status</span>
+              <span className="font-semibold text-emerald-400">Active</span>
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium">Mobile</label>
-            <input
-              value={form.mobile}
-              onChange={(e) => setForm({ ...form, mobile: e.target.value })}
-              className="mt-1 w-full border rounded px-3 py-2"
-            />
-          </div>
-        </div>
-        <div className="mt-4 flex gap-2">
-          <button
-            type="submit"
-            className="px-4 py-2 bg-blue-600 text-white rounded"
+        </aside>
+
+        <div className="space-y-6">
+          <form
+            onSubmit={handleUpdate}
+            className="rounded-sm border border-[#2e3a47] bg-[#1c2434]"
           >
-            Update Profile
-          </button>
-          <button
-            type="button"
-            onClick={handleDeleteAccount}
-            className="px-4 py-2 bg-red-600 text-white rounded"
-          >
-            Delete Account
-          </button>
-        </div>
-      </form>
-
-      <section className="bg-white p-6 rounded shadow mb-6">
-        <h2 className="text-lg font-medium mb-3">Addresses</h2>
-        {profile?.addresses?.length ? (
-          <div className="space-y-4">
-            {profile.addresses.map((addr) => (
-              <div
-                key={addr._id || addr.addressLine}
-                className="border p-3 rounded flex justify-between items-start"
+            <div className="border-b border-[#2e3a47] px-6 py-5">
+              <h2 className="font-semibold text-white">Personal information</h2>
+              <p className="mt-1 text-xs text-slate-400">
+                Keep your administrator contact details current.
+              </p>
+            </div>
+            <div className="grid gap-5 p-6 md:grid-cols-2">
+              <label className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                Full name
+                <input
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  className={inputClass}
+                />
+              </label>
+              <label className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                Email address
+                <input value={form.email} disabled className={inputClass} />
+              </label>
+              <label className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                Mobile number
+                <input
+                  value={form.mobile}
+                  onChange={(e) => setForm({ ...form, mobile: e.target.value })}
+                  className={inputClass}
+                />
+              </label>
+            </div>
+            <div className="flex justify-end border-t border-[#2e3a47] px-6 py-4">
+              <button
+                type="submit"
+                className="rounded-sm bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-500"
               >
-                <div>
-                  <div className="font-semibold">
-                    {addr.fullName}{" "}
-                    {addr.isDefault ? (
-                      <span className="text-sm text-green-600">(Default)</span>
-                    ) : null}
-                  </div>
-                  <div className="text-sm">
-                    {addr.addressLine}, {addr.city}, {addr.state} -{" "}
-                    {addr.pincode}
-                  </div>
-                  <div className="text-sm">{addr.mobile}</div>
-                </div>
-                <div className="flex flex-col gap-2">
-                  {!addr.isDefault && (
-                    <button
-                      onClick={() => handleSetDefault(addr._id)}
-                      className="text-sm px-3 py-1 bg-yellow-400 rounded"
-                    >
-                      Set Default
-                    </button>
-                  )}
-                  <button
-                    onClick={() => handleDeleteAddress(addr._id)}
-                    className="text-sm px-3 py-1 bg-red-500 text-white rounded"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-sm text-gray-600">No addresses found.</div>
-        )}
-      </section>
+                Save changes
+              </button>
+            </div>
+          </form>
 
-      <section className="bg-white p-6 rounded shadow">
-        <h2 className="text-lg font-medium mb-3">Add Address</h2>
-        <form
-          onSubmit={handleAddAddress}
-          className="grid grid-cols-1 md:grid-cols-2 gap-3"
-        >
-          <input
-            placeholder="Full name"
-            value={addressForm.fullName}
-            onChange={(e) =>
-              setAddressForm({ ...addressForm, fullName: e.target.value })
-            }
-            className="border rounded px-3 py-2"
-          />
-          <input
-            placeholder="Mobile"
-            value={addressForm.mobile}
-            onChange={(e) =>
-              setAddressForm({ ...addressForm, mobile: e.target.value })
-            }
-            className="border rounded px-3 py-2"
-          />
-          <input
-            placeholder="Pincode"
-            value={addressForm.pincode}
-            onChange={(e) =>
-              setAddressForm({ ...addressForm, pincode: e.target.value })
-            }
-            className="border rounded px-3 py-2"
-          />
-          <input
-            placeholder="City"
-            value={addressForm.city}
-            onChange={(e) =>
-              setAddressForm({ ...addressForm, city: e.target.value })
-            }
-            className="border rounded px-3 py-2"
-          />
-          <input
-            placeholder="State"
-            value={addressForm.state}
-            onChange={(e) =>
-              setAddressForm({ ...addressForm, state: e.target.value })
-            }
-            className="border rounded px-3 py-2"
-          />
-          <input
-            placeholder="Country"
-            value={addressForm.country}
-            onChange={(e) =>
-              setAddressForm({ ...addressForm, country: e.target.value })
-            }
-            className="border rounded px-3 py-2"
-          />
-          <div className="flex items-center gap-2">
-            <input
-              id="isDefault"
-              type="checkbox"
-              checked={addressForm.isDefault}
-              onChange={(e) =>
-                setAddressForm({ ...addressForm, isDefault: e.target.checked })
-              }
-            />
-            <label htmlFor="isDefault" className="text-sm">
-              Set as default
-            </label>
-          </div>
-          <div>
-            <input
-              placeholder="Address line"
-              value={addressForm.addressLine}
-              onChange={(e) =>
-                setAddressForm({ ...addressForm, addressLine: e.target.value })
-              }
-              className="border rounded px-3 py-2 w-full"
-            />
-          </div>
-          <div className="md:col-span-2 flex gap-2 mt-2">
-            <button
-              type="submit"
-              className="px-4 py-2 bg-green-600 text-white rounded"
+          <section className="rounded-sm border border-[#2e3a47] bg-[#1c2434]">
+            <div className="flex items-center justify-between border-b border-[#2e3a47] px-6 py-5">
+              <div>
+                <h2 className="font-semibold text-white">Saved addresses</h2>
+                <p className="mt-1 text-xs text-slate-400">
+                  Addresses available for administrator account actions.
+                </p>
+              </div>
+              <span className="rounded-full bg-[#24303f] px-3 py-1 text-xs font-semibold text-slate-300">
+                {profile?.addresses?.length || 0} saved
+              </span>
+            </div>
+            <div className="space-y-3 p-6">
+              {profile?.addresses?.length ? (
+                profile.addresses.map((addr) => (
+                  <div
+                    key={addr._id || addr.addressLine}
+                    className="flex flex-col gap-4 rounded-sm border border-[#2e3a47] bg-[#121824] p-4 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div>
+                      <div className="flex items-center gap-2 text-sm font-semibold text-white">
+                        {addr.fullName}
+                        {addr.isDefault && (
+                          <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-400">
+                            Default
+                          </span>
+                        )}
+                      </div>
+                      <p className="mt-1 text-sm text-slate-400">
+                        {addr.addressLine}, {addr.city}, {addr.state} -{" "}
+                        {addr.pincode}
+                      </p>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {addr.country} · {addr.mobile}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      {!addr.isDefault && (
+                        <button
+                          type="button"
+                          onClick={() => handleSetDefault(addr._id)}
+                          className="rounded-sm border border-[#2e3a47] px-3 py-2 text-xs font-semibold text-slate-300 transition-colors hover:border-blue-500 hover:text-blue-400"
+                        >
+                          Make default
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteAddress(addr._id)}
+                        className="rounded-sm border border-rose-500/30 px-3 py-2 text-xs font-semibold text-rose-400 transition-colors hover:bg-rose-500/10"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <p className="py-4 text-sm text-slate-500">
+                  No addresses saved yet.
+                </p>
+              )}
+            </div>
+          </section>
+
+          <section className="rounded-sm border border-[#2e3a47] bg-[#1c2434]">
+            <div className="border-b border-[#2e3a47] px-6 py-5">
+              <h2 className="font-semibold text-white">Add an address</h2>
+              <p className="mt-1 text-xs text-slate-400">
+                Save a frequently used administrator address.
+              </p>
+            </div>
+            <form
+              onSubmit={handleAddAddress}
+              className="grid grid-cols-1 gap-5 p-6 md:grid-cols-2"
             >
-              Add Address
-            </button>
+              <input
+                placeholder="Full name"
+                value={addressForm.fullName}
+                onChange={(e) =>
+                  setAddressForm({ ...addressForm, fullName: e.target.value })
+                }
+                className={inputClass}
+              />
+              <input
+                placeholder="Mobile"
+                value={addressForm.mobile}
+                onChange={(e) =>
+                  setAddressForm({ ...addressForm, mobile: e.target.value })
+                }
+                className={inputClass}
+              />
+              <input
+                placeholder="Pincode"
+                value={addressForm.pincode}
+                onChange={(e) =>
+                  setAddressForm({ ...addressForm, pincode: e.target.value })
+                }
+                className={inputClass}
+              />
+              <input
+                placeholder="City"
+                value={addressForm.city}
+                onChange={(e) =>
+                  setAddressForm({ ...addressForm, city: e.target.value })
+                }
+                className={inputClass}
+              />
+              <input
+                placeholder="State"
+                value={addressForm.state}
+                onChange={(e) =>
+                  setAddressForm({ ...addressForm, state: e.target.value })
+                }
+                className={inputClass}
+              />
+              <input
+                placeholder="Country"
+                value={addressForm.country}
+                onChange={(e) =>
+                  setAddressForm({ ...addressForm, country: e.target.value })
+                }
+                className={inputClass}
+              />
+              <div className="flex items-center gap-3 text-sm text-slate-300">
+                <input
+                  id="isDefault"
+                  type="checkbox"
+                  checked={addressForm.isDefault}
+                  onChange={(e) =>
+                    setAddressForm({
+                      ...addressForm,
+                      isDefault: e.target.checked,
+                    })
+                  }
+                />
+                <label htmlFor="isDefault" className="text-sm">
+                  Set as default
+                </label>
+              </div>
+              <div>
+                <input
+                  placeholder="Address line"
+                  value={addressForm.addressLine}
+                  onChange={(e) =>
+                    setAddressForm({
+                      ...addressForm,
+                      addressLine: e.target.value,
+                    })
+                  }
+                  className={inputClass}
+                />
+              </div>
+              <div className="mt-2 flex gap-3 md:col-span-2">
+                <button
+                  type="submit"
+                  className="rounded-sm bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-500"
+                >
+                  Save address
+                </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setAddressForm({
+                      fullName: "",
+                      mobile: "",
+                      pincode: "",
+                      addressLine: "",
+                      city: "",
+                      state: "",
+                      country: "India",
+                      isDefault: false,
+                    })
+                  }
+                  className="rounded-sm border border-[#2e3a47] px-5 py-2.5 text-sm font-semibold text-slate-300 transition-colors hover:bg-[#24303f]"
+                >
+                  Reset
+                </button>
+              </div>
+            </form>
+          </section>
+
+          <section className="flex flex-col gap-4 rounded-sm border border-rose-500/20 bg-rose-500/5 p-6 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h2 className="font-semibold text-rose-300">
+                Delete administrator account
+              </h2>
+              <p className="mt-1 text-xs text-slate-400">
+                This permanently removes the account and cannot be undone.
+              </p>
+            </div>
             <button
               type="button"
-              onClick={() =>
-                setAddressForm({
-                  fullName: "",
-                  mobile: "",
-                  pincode: "",
-                  addressLine: "",
-                  city: "",
-                  state: "",
-                  country: "India",
-                  isDefault: false,
-                })
-              }
-              className="px-4 py-2 bg-gray-200 rounded"
+              onClick={handleDeleteAccount}
+              className="rounded-sm border border-rose-500/40 px-4 py-2.5 text-sm font-semibold text-rose-300 transition-colors hover:bg-rose-500/10"
             >
-              Reset
+              Delete account
             </button>
-          </div>
-        </form>
-      </section>
+          </section>
+        </div>
+      </div>
     </div>
   );
 }

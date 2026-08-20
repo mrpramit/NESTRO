@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { fetchProfile } from "@/utils/api";
+import { fetchAdminProfile, logoutAdmin } from "@/utils/api";
 import {
   MenuIcon,
   SearchIcon,
@@ -30,21 +30,14 @@ export default function Header({
 
   const handleLogout = async () => {
     setProfileDropdownOpen(false);
-    // Try calling a backend logout endpoint if available to clear httpOnly cookie
     try {
-      await fetch("/api/user/logout", {
-        method: "POST",
-        credentials: "include",
-      });
-    } catch (e) {
-      // ignore errors (endpoint may not exist)
-    }
-    // Clear any client-side state if used (localStorage/sessionStorage)
-    try {
+      await logoutAdmin();
       localStorage.removeItem("persist:root");
-    } catch (e) {}
-    // Navigate immediately to sign-in page
-    router.push("/sign-in");
+      localStorage.removeItem("nestro_admin");
+    } catch (e) {
+      localStorage.removeItem("nestro_admin");
+    }
+    router.push("/admin-login");
   };
 
   // Close dropdowns on clicking outside
@@ -65,7 +58,7 @@ export default function Header({
     let mounted = true;
     const loadProfile = async () => {
       try {
-        const res = await fetchProfile();
+        const res = await fetchAdminProfile();
         if (mounted && res && res.success) {
           setProfileData(res.user || res.data || null);
         }

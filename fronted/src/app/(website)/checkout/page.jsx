@@ -27,9 +27,15 @@ import {
   FiPercent,
   FiHelpCircle,
   FiAlertCircle,
-  FiX
+  FiX,
 } from "react-icons/fi";
-import { fetchUserProfile, verifyUserOtp, resendUserOtp, addUserAddress, sendOrderEmail } from "@/utils/api";
+import {
+  fetchUserProfile,
+  verifyUserOtp,
+  resendUserOtp,
+  addUserAddress,
+  sendOrderEmail,
+} from "@/utils/api";
 import ProductIllustration from "@/components/website/ProductIllustration";
 
 export default function CheckoutPage() {
@@ -103,7 +109,10 @@ export default function CheckoutPage() {
   useEffect(() => {
     const loadUser = async () => {
       try {
-        const storedUserStr = typeof window !== "undefined" ? localStorage.getItem("nestro_user") : null;
+        const storedUserStr =
+          typeof window !== "undefined"
+            ? localStorage.getItem("nestro_user")
+            : null;
         if (storedUserStr) {
           const parsed = JSON.parse(storedUserStr);
           setCurrentUser(parsed);
@@ -127,7 +136,9 @@ export default function CheckoutPage() {
           });
           if (res.user.addresses && res.user.addresses.length > 0) {
             setSavedAddresses(res.user.addresses);
-            const defaultAddr = res.user.addresses.find((a) => a.isDefault) || res.user.addresses[0];
+            const defaultAddr =
+              res.user.addresses.find((a) => a.isDefault) ||
+              res.user.addresses[0];
             setSelectedAddressId(defaultAddr._id);
           }
         }
@@ -150,11 +161,23 @@ export default function CheckoutPage() {
   }, [showOtpModal, otpTimer]);
 
   // Price Calculations
-  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const discountAmount = appliedDiscount > 0 ? (subtotal * appliedDiscount) / 100 : 0;
-  const shippingCost = deliveryMethod === "express" ? 2500 : subtotal >= 50000 || subtotal === 0 ? 0 : 1500;
+  const subtotal = cartItems.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0,
+  );
+  const discountAmount =
+    appliedDiscount > 0 ? (subtotal * appliedDiscount) / 100 : 0;
+  const shippingCost =
+    deliveryMethod === "express"
+      ? 2500
+      : subtotal >= 50000 || subtotal === 0
+        ? 0
+        : 1500;
   const estimatedTax = Math.round((subtotal - discountAmount) * 0.18); // 18% GST
-  const grandTotal = Math.max(0, subtotal - discountAmount + shippingCost + estimatedTax);
+  const grandTotal = Math.max(
+    0,
+    subtotal - discountAmount + shippingCost + estimatedTax,
+  );
 
   // Handle Contact Step Verification Trigger
   const handleInitiateContactVerification = async (e) => {
@@ -235,7 +258,10 @@ export default function CheckoutPage() {
 
     try {
       setVerifyingOtp(true);
-      const res = await verifyUserOtp({ email: contactInfo.email, otp: Number(code) });
+      const res = await verifyUserOtp({
+        email: contactInfo.email,
+        otp: Number(code),
+      });
       if (res.success || code === "123456" || code === "654321") {
         toast.success("Identity verified successfully!");
         setIsVerified(true);
@@ -392,27 +418,44 @@ export default function CheckoutPage() {
           paymentMethod === "card"
             ? "Credit / Debit Card"
             : paymentMethod === "upi"
-            ? `UPI (${upiId || "GPay/PhonePe"})`
-            : paymentMethod === "netbanking"
-            ? `Net Banking (${selectedBank})`
-            : paymentMethod === "cod"
-            ? "Cash on Delivery"
-            : "Online Payment Gateway",
+              ? `UPI (${upiId || "GPay/PhonePe"})`
+              : paymentMethod === "netbanking"
+                ? `Net Banking (${selectedBank})`
+                : paymentMethod === "cod"
+                  ? "Cash on Delivery"
+                  : "Online Payment Gateway",
       };
 
       setCompletedOrderData(completedOrder);
       setOrderCompleted(true);
       dispatch(clearCart());
 
-      // Save order to localStorage for profile order history
-      if (typeof window !== "undefined") {
-        try {
-          const stored = localStorage.getItem("nestro_orders");
-          const pastOrders = stored ? JSON.parse(stored) : [];
-          localStorage.setItem("nestro_orders", JSON.stringify([completedOrder, ...pastOrders]));
-        } catch (e) {
-          console.error("Could not persist order to localStorage:", e);
-        }
+      // Persist order to backend so admin can see it
+      try {
+        const payload = {
+          orderId: orderRef,
+          userId: currentUser?._id || null,
+          items: completedOrder.items,
+          subtotal: completedOrder.subtotal,
+          discountAmount: completedOrder.discountAmount,
+          shippingCost: completedOrder.shippingCost,
+          estimatedTax: completedOrder.estimatedTax,
+          grandTotal: completedOrder.grandTotal,
+          contactInfo: completedOrder.contactInfo,
+          shippingAddress: completedOrder.shippingAddress,
+          paymentMethod: completedOrder.paymentMethod,
+          status: "confirmed",
+        };
+        // Best-effort: don't block UI if backend fails
+        import("@/utils/api").then(async (mod) => {
+          try {
+            await mod.createOrderApi(payload);
+          } catch (err) {
+            console.warn("Could not save order to backend:", err);
+          }
+        });
+      } catch (e) {
+        console.warn("Order persistence skipped:", e);
       }
 
       // Send actual confirmation email via Brevo SMTP backend
@@ -421,9 +464,13 @@ export default function CheckoutPage() {
         orderData: completedOrder,
       }).then((res) => {
         if (res.success) {
-          toast.success(`🎉 Order confirmed! Email sent to ${contactInfo.email}`);
+          toast.success(
+            `🎉 Order confirmed! Email sent to ${contactInfo.email}`,
+          );
         } else {
-          toast.info(`Order confirmed! Email sending notice: ${res.message || "queued"}`);
+          toast.info(
+            `Order confirmed! Email sending notice: ${res.message || "queued"}`,
+          );
         }
       });
     }, 2000);
@@ -438,7 +485,9 @@ export default function CheckoutPage() {
       orderData: completedOrderData,
     });
     if (res.success) {
-      toast.success(`Email sent successfully to ${completedOrderData.contactInfo.email}!`);
+      toast.success(
+        `Email sent successfully to ${completedOrderData.contactInfo.email}!`,
+      );
     } else {
       toast.error(res.message || "Could not send email.");
     }
@@ -464,7 +513,10 @@ export default function CheckoutPage() {
               </h1>
               <p className="text-xs md:text-sm text-[#8A7973] max-w-md mx-auto">
                 We've received your order and sent a confirmation email to{" "}
-                <span className="font-bold text-[#281C19]">{completedOrderData.contactInfo.email}</span>.
+                <span className="font-bold text-[#281C19]">
+                  {completedOrderData.contactInfo.email}
+                </span>
+                .
               </p>
             </div>
 
@@ -473,7 +525,9 @@ export default function CheckoutPage() {
                 <span className="text-[#8A7973] block text-[10px] uppercase font-bold tracking-wider">
                   Order Number
                 </span>
-                <span className="font-extrabold">{completedOrderData.orderId}</span>
+                <span className="font-extrabold">
+                  {completedOrderData.orderId}
+                </span>
               </div>
               <div className="h-8 w-px bg-[#EFE8DF]" />
               <div>
@@ -487,7 +541,9 @@ export default function CheckoutPage() {
                 <span className="text-[#8A7973] block text-[10px] uppercase font-bold tracking-wider">
                   Est. Delivery
                 </span>
-                <span className="font-bold text-[#8C6239]">3 - 5 Business Days</span>
+                <span className="font-bold text-[#8C6239]">
+                  3 - 5 Business Days
+                </span>
               </div>
             </div>
           </div>
@@ -501,16 +557,25 @@ export default function CheckoutPage() {
               </h3>
               <div className="space-y-3 max-h-[280px] overflow-y-auto pr-1">
                 {completedOrderData.items.map((item, idx) => (
-                  <div key={idx} className="flex items-center gap-3 py-1 border-b border-gray-50 last:border-0">
+                  <div
+                    key={idx}
+                    className="flex items-center gap-3 py-1 border-b border-gray-50 last:border-0"
+                  >
                     <div className="w-12 h-12 bg-[#FAF7F2] rounded-lg p-1 flex items-center justify-center flex-shrink-0 border border-[#EFE8DF]">
                       {item.thumbnail && item.thumbnail.startsWith("http") ? (
-                        <img src={item.thumbnail} alt={item.name} className="max-h-full max-w-full object-contain" />
+                        <img
+                          src={item.thumbnail}
+                          alt={item.name}
+                          className="max-h-full max-w-full object-contain"
+                        />
                       ) : (
                         <ProductIllustration name={item.name} />
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h4 className="text-xs font-bold text-[#281C19] truncate">{item.name}</h4>
+                      <h4 className="text-xs font-bold text-[#281C19] truncate">
+                        {item.name}
+                      </h4>
                       <p className="text-[10px] text-[#8A7973]">
                         Qty: {item.quantity} • {item.color}
                       </p>
@@ -531,26 +596,35 @@ export default function CheckoutPage() {
                     Shipping Address
                   </h3>
                   <p className="text-xs font-bold text-[#281C19]">
-                    {completedOrderData.shippingAddress.fullName || completedOrderData.contactInfo.name}
+                    {completedOrderData.shippingAddress.fullName ||
+                      completedOrderData.contactInfo.name}
                   </p>
                   <p className="text-xs text-[#8A7973]">
-                    {completedOrderData.shippingAddress.addressLine}, {completedOrderData.shippingAddress.city},{" "}
-                    {completedOrderData.shippingAddress.state} - {completedOrderData.shippingAddress.pincode}
+                    {completedOrderData.shippingAddress.addressLine},{" "}
+                    {completedOrderData.shippingAddress.city},{" "}
+                    {completedOrderData.shippingAddress.state} -{" "}
+                    {completedOrderData.shippingAddress.pincode}
                   </p>
-                  <p className="text-xs text-[#8A7973]">Phone: {completedOrderData.contactInfo.mobile}</p>
+                  <p className="text-xs text-[#8A7973]">
+                    Phone: {completedOrderData.contactInfo.mobile}
+                  </p>
                 </div>
 
                 <div>
                   <h3 className="text-xs font-bold text-[#8A7973] uppercase tracking-wider mb-1">
                     Payment Method
                   </h3>
-                  <p className="text-xs font-bold text-[#8C6239]">{completedOrderData.paymentMethod}</p>
+                  <p className="text-xs font-bold text-[#8C6239]">
+                    {completedOrderData.paymentMethod}
+                  </p>
                 </div>
               </div>
 
               {/* Total Summary Row */}
               <div className="bg-[#FAF7F2] p-4 rounded-xl border border-[#EFE8DF] flex justify-between items-center">
-                <span className="text-xs font-bold text-[#281C19]">Total Paid</span>
+                <span className="text-xs font-bold text-[#281C19]">
+                  Total Paid
+                </span>
                 <span className="text-lg font-extrabold text-[#281C19]">
                   ₹{completedOrderData.grandTotal.toLocaleString("en-IN")}
                 </span>
@@ -593,7 +667,9 @@ export default function CheckoutPage() {
             <FiShoppingBag className="w-8 h-8" />
           </div>
           <div className="space-y-1">
-            <h2 className="text-xl font-bold text-[#281C19]">Your Cart is Empty</h2>
+            <h2 className="text-xl font-bold text-[#281C19]">
+              Your Cart is Empty
+            </h2>
             <p className="text-xs text-[#8A7973]">
               Add handcrafted pieces to your bag before proceeding to checkout.
             </p>
@@ -616,18 +692,26 @@ export default function CheckoutPage() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#EFE8DF] pb-4">
           <div>
             <div className="flex items-center gap-2 text-xs text-[#8A7973] mb-1">
-              <Link href="/" className="hover:text-[#8C6239]">Home</Link>
+              <Link href="/" className="hover:text-[#8C6239]">
+                Home
+              </Link>
               <span>/</span>
-              <Link href="/cart" className="hover:text-[#8C6239]">Bag</Link>
+              <Link href="/cart" className="hover:text-[#8C6239]">
+                Bag
+              </Link>
               <span>/</span>
               <span className="text-[#8C6239] font-bold">Checkout</span>
             </div>
-            <h1 className="text-2xl md:text-3xl font-bold text-[#281C19] tracking-tight">Checkout</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-[#281C19] tracking-tight">
+              Checkout
+            </h1>
           </div>
 
           <div className="flex items-center gap-2 text-xs text-[#8C6239] bg-white border border-[#EFE8DF] px-3.5 py-1.5 rounded-full shadow-sm">
             <FiLock className="w-3.5 h-3.5" />
-            <span className="font-bold tracking-wide">256-Bit SSL Encryption</span>
+            <span className="font-bold tracking-wide">
+              256-Bit SSL Encryption
+            </span>
           </div>
         </div>
 
@@ -636,23 +720,35 @@ export default function CheckoutPage() {
           {/* Left Column: Multi-Step Accordion Form (8 cols) */}
           <div className="lg:col-span-7 xl:col-span-8 space-y-6">
             {/* STEP 1: CONTACT INFORMATION & OTP VERIFICATION */}
-            <div className={`bg-white border rounded-[20px] overflow-hidden transition-all duration-300 shadow-sm ${
-              activeStep === 1 ? "border-[#8C6239] ring-2 ring-[#8C6239]/10" : "border-[#EFE8DF]"
-            }`}>
+            <div
+              className={`bg-white border rounded-[20px] overflow-hidden transition-all duration-300 shadow-sm ${
+                activeStep === 1
+                  ? "border-[#8C6239] ring-2 ring-[#8C6239]/10"
+                  : "border-[#EFE8DF]"
+              }`}
+            >
               <div
                 onClick={() => setActiveStep(1)}
                 className="p-5 flex items-center justify-between cursor-pointer bg-white select-none"
               >
                 <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
-                    isVerified ? "bg-[#8C6239] text-white" : "bg-[#FAF7F2] text-[#8C6239] border border-[#EFE8DF]"
-                  }`}>
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                      isVerified
+                        ? "bg-[#8C6239] text-white"
+                        : "bg-[#FAF7F2] text-[#8C6239] border border-[#EFE8DF]"
+                    }`}
+                  >
                     {isVerified ? <FiCheck className="w-4 h-4" /> : "1"}
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-[#281C19]">Contact Details</h3>
+                    <h3 className="text-sm font-bold text-[#281C19]">
+                      Contact Details
+                    </h3>
                     <p className="text-[11px] text-[#8A7973]">
-                      {isVerified ? `${contactInfo.email} (Verified)` : "Enter your email & phone number for order updates"}
+                      {isVerified
+                        ? `${contactInfo.email} (Verified)`
+                        : "Enter your email & phone number for order updates"}
                     </p>
                   </div>
                 </div>
@@ -666,7 +762,10 @@ export default function CheckoutPage() {
 
               {activeStep === 1 && (
                 <div className="p-5 pt-0 border-t border-[#EFE8DF] bg-[#FAF7F2]/30 space-y-4">
-                  <form onSubmit={handleInitiateContactVerification} className="space-y-4 mt-4">
+                  <form
+                    onSubmit={handleInitiateContactVerification}
+                    className="space-y-4 mt-4"
+                  >
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {/* Name */}
                       <div className="space-y-1">
@@ -677,7 +776,12 @@ export default function CheckoutPage() {
                           <input
                             type="text"
                             value={contactInfo.name}
-                            onChange={(e) => setContactInfo({ ...contactInfo, name: e.target.value })}
+                            onChange={(e) =>
+                              setContactInfo({
+                                ...contactInfo,
+                                name: e.target.value,
+                              })
+                            }
                             placeholder="Rahul Sharma"
                             className="w-full bg-white border border-[#EFE8DF] rounded-xl pl-9 pr-3 py-2.5 text-xs text-[#281C19] focus:outline-none focus:border-[#8C6239]"
                             required
@@ -695,7 +799,12 @@ export default function CheckoutPage() {
                           <input
                             type="tel"
                             value={contactInfo.mobile}
-                            onChange={(e) => setContactInfo({ ...contactInfo, mobile: e.target.value })}
+                            onChange={(e) =>
+                              setContactInfo({
+                                ...contactInfo,
+                                mobile: e.target.value,
+                              })
+                            }
                             placeholder="+91 98765 43210"
                             className="w-full bg-white border border-[#EFE8DF] rounded-xl pl-9 pr-3 py-2.5 text-xs text-[#281C19] focus:outline-none focus:border-[#8C6239]"
                             required
@@ -714,14 +823,21 @@ export default function CheckoutPage() {
                         <input
                           type="email"
                           value={contactInfo.email}
-                          onChange={(e) => setContactInfo({ ...contactInfo, email: e.target.value })}
+                          onChange={(e) =>
+                            setContactInfo({
+                              ...contactInfo,
+                              email: e.target.value,
+                            })
+                          }
                           placeholder="rahul@example.com"
                           className="w-full bg-white border border-[#EFE8DF] rounded-xl pl-9 pr-3 py-2.5 text-xs text-[#281C19] focus:outline-none focus:border-[#8C6239]"
                           required
                         />
                         <FiMail className="w-4 h-4 text-[#8A7973] absolute left-3 top-3" />
                       </div>
-                      <p className="text-[10px] text-[#8A7973]">Order receipt & tracking links will be sent here.</p>
+                      <p className="text-[10px] text-[#8A7973]">
+                        Order receipt & tracking links will be sent here.
+                      </p>
                     </div>
 
                     {/* Submit / Proceed Button */}
@@ -729,7 +845,9 @@ export default function CheckoutPage() {
                       type="submit"
                       className="bg-[#8C6239] hover:bg-[#724E2B] text-white py-2.5 px-6 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all shadow-sm cursor-pointer"
                     >
-                      {isVerified ? "Continue to Shipping Address" : "Verify & Continue"}
+                      {isVerified
+                        ? "Continue to Shipping Address"
+                        : "Verify & Continue"}
                       <FiArrowRight className="w-4 h-4" />
                     </button>
                   </form>
@@ -738,22 +856,34 @@ export default function CheckoutPage() {
             </div>
 
             {/* STEP 2: SHIPPING ADDRESS */}
-            <div className={`bg-white border rounded-[20px] overflow-hidden transition-all duration-300 shadow-sm ${
-              activeStep === 2 ? "border-[#8C6239] ring-2 ring-[#8C6239]/10" : "border-[#EFE8DF]"
-            }`}>
+            <div
+              className={`bg-white border rounded-[20px] overflow-hidden transition-all duration-300 shadow-sm ${
+                activeStep === 2
+                  ? "border-[#8C6239] ring-2 ring-[#8C6239]/10"
+                  : "border-[#EFE8DF]"
+              }`}
+            >
               <div
                 onClick={() => setActiveStep(2)}
                 className="p-5 flex items-center justify-between cursor-pointer bg-white select-none"
               >
                 <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
-                    activeStep > 2 ? "bg-[#8C6239] text-white" : "bg-[#FAF7F2] text-[#8C6239] border border-[#EFE8DF]"
-                  }`}>
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                      activeStep > 2
+                        ? "bg-[#8C6239] text-white"
+                        : "bg-[#FAF7F2] text-[#8C6239] border border-[#EFE8DF]"
+                    }`}
+                  >
                     {activeStep > 2 ? <FiCheck className="w-4 h-4" /> : "2"}
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-[#281C19]">Shipping Address</h3>
-                    <p className="text-[11px] text-[#8A7973]">Where should we deliver your order?</p>
+                    <h3 className="text-sm font-bold text-[#281C19]">
+                      Shipping Address
+                    </h3>
+                    <p className="text-[11px] text-[#8A7973]">
+                      Where should we deliver your order?
+                    </p>
                   </div>
                 </div>
               </div>
@@ -788,15 +918,20 @@ export default function CheckoutPage() {
                             }`}
                           >
                             <div className="flex items-start justify-between">
-                              <span className="text-xs font-bold text-[#281C19]">{addr.fullName}</span>
+                              <span className="text-xs font-bold text-[#281C19]">
+                                {addr.fullName}
+                              </span>
                               <span className="text-[9px] font-extrabold uppercase px-2 py-0.5 rounded bg-[#FAF7F2] text-[#8C6239] border border-[#EFE8DF]">
                                 {addr.isDefault ? "Default" : "Saved"}
                               </span>
                             </div>
                             <p className="text-[11px] text-[#8A7973] mt-1 line-clamp-2">
-                              {addr.addressLine}, {addr.city}, {addr.state} - {addr.pincode}
+                              {addr.addressLine}, {addr.city}, {addr.state} -{" "}
+                              {addr.pincode}
                             </p>
-                            <p className="text-[10px] font-bold text-[#281C19] mt-2">Ph: {addr.mobile}</p>
+                            <p className="text-[10px] font-bold text-[#281C19] mt-2">
+                              Ph: {addr.mobile}
+                            </p>
                           </div>
                         ))}
                       </div>
@@ -805,10 +940,15 @@ export default function CheckoutPage() {
 
                   {/* Add / Edit New Address Form */}
                   {(savedAddresses.length === 0 || showNewAddressForm) && (
-                    <form onSubmit={handleConfirmAddressStep} className="space-y-3 mt-4">
+                    <form
+                      onSubmit={handleConfirmAddressStep}
+                      className="space-y-3 mt-4"
+                    >
                       {savedAddresses.length > 0 && (
                         <div className="flex items-center justify-between pb-2 border-b border-[#EFE8DF]">
-                          <span className="text-xs font-bold text-[#281C19]">Enter New Shipping Address</span>
+                          <span className="text-xs font-bold text-[#281C19]">
+                            Enter New Shipping Address
+                          </span>
                           <button
                             type="button"
                             onClick={() => setShowNewAddressForm(false)}
@@ -821,11 +961,18 @@ export default function CheckoutPage() {
 
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-[#281C19] uppercase">Recipient Name *</label>
+                          <label className="text-[10px] font-bold text-[#281C19] uppercase">
+                            Recipient Name *
+                          </label>
                           <input
                             type="text"
                             value={addressForm.fullName}
-                            onChange={(e) => setAddressForm({ ...addressForm, fullName: e.target.value })}
+                            onChange={(e) =>
+                              setAddressForm({
+                                ...addressForm,
+                                fullName: e.target.value,
+                              })
+                            }
                             placeholder="Rahul Sharma"
                             className="w-full bg-white border border-[#EFE8DF] rounded-xl px-3 py-2 text-xs text-[#281C19] focus:outline-none focus:border-[#8C6239]"
                             required
@@ -833,11 +980,18 @@ export default function CheckoutPage() {
                         </div>
 
                         <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-[#281C19] uppercase">Contact Phone *</label>
+                          <label className="text-[10px] font-bold text-[#281C19] uppercase">
+                            Contact Phone *
+                          </label>
                           <input
                             type="tel"
                             value={addressForm.mobile}
-                            onChange={(e) => setAddressForm({ ...addressForm, mobile: e.target.value })}
+                            onChange={(e) =>
+                              setAddressForm({
+                                ...addressForm,
+                                mobile: e.target.value,
+                              })
+                            }
                             placeholder="+91 98765 43210"
                             className="w-full bg-white border border-[#EFE8DF] rounded-xl px-3 py-2 text-xs text-[#281C19] focus:outline-none focus:border-[#8C6239]"
                             required
@@ -847,11 +1001,18 @@ export default function CheckoutPage() {
 
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                         <div className="space-y-1 md:col-span-2">
-                          <label className="text-[10px] font-bold text-[#281C19] uppercase">Street Address / House / Flat *</label>
+                          <label className="text-[10px] font-bold text-[#281C19] uppercase">
+                            Street Address / House / Flat *
+                          </label>
                           <input
                             type="text"
                             value={addressForm.addressLine}
-                            onChange={(e) => setAddressForm({ ...addressForm, addressLine: e.target.value })}
+                            onChange={(e) =>
+                              setAddressForm({
+                                ...addressForm,
+                                addressLine: e.target.value,
+                              })
+                            }
                             placeholder="Flat 402, Green Valley Apartments, MG Road"
                             className="w-full bg-white border border-[#EFE8DF] rounded-xl px-3 py-2 text-xs text-[#281C19] focus:outline-none focus:border-[#8C6239]"
                             required
@@ -859,11 +1020,18 @@ export default function CheckoutPage() {
                         </div>
 
                         <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-[#281C19] uppercase">Pincode *</label>
+                          <label className="text-[10px] font-bold text-[#281C19] uppercase">
+                            Pincode *
+                          </label>
                           <input
                             type="text"
                             value={addressForm.pincode}
-                            onChange={(e) => setAddressForm({ ...addressForm, pincode: e.target.value })}
+                            onChange={(e) =>
+                              setAddressForm({
+                                ...addressForm,
+                                pincode: e.target.value,
+                              })
+                            }
                             placeholder="560001"
                             className="w-full bg-white border border-[#EFE8DF] rounded-xl px-3 py-2 text-xs text-[#281C19] focus:outline-none focus:border-[#8C6239]"
                             required
@@ -873,11 +1041,18 @@ export default function CheckoutPage() {
 
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                         <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-[#281C19] uppercase">City / District *</label>
+                          <label className="text-[10px] font-bold text-[#281C19] uppercase">
+                            City / District *
+                          </label>
                           <input
                             type="text"
                             value={addressForm.city}
-                            onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })}
+                            onChange={(e) =>
+                              setAddressForm({
+                                ...addressForm,
+                                city: e.target.value,
+                              })
+                            }
                             placeholder="Bengaluru"
                             className="w-full bg-white border border-[#EFE8DF] rounded-xl px-3 py-2 text-xs text-[#281C19] focus:outline-none focus:border-[#8C6239]"
                             required
@@ -885,11 +1060,18 @@ export default function CheckoutPage() {
                         </div>
 
                         <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-[#281C19] uppercase">State *</label>
+                          <label className="text-[10px] font-bold text-[#281C19] uppercase">
+                            State *
+                          </label>
                           <input
                             type="text"
                             value={addressForm.state}
-                            onChange={(e) => setAddressForm({ ...addressForm, state: e.target.value })}
+                            onChange={(e) =>
+                              setAddressForm({
+                                ...addressForm,
+                                state: e.target.value,
+                              })
+                            }
                             placeholder="Karnataka"
                             className="w-full bg-white border border-[#EFE8DF] rounded-xl px-3 py-2 text-xs text-[#281C19] focus:outline-none focus:border-[#8C6239]"
                             required
@@ -897,11 +1079,18 @@ export default function CheckoutPage() {
                         </div>
 
                         <div className="space-y-1">
-                          <label className="text-[10px] font-bold text-[#281C19] uppercase">Landmark (Optional)</label>
+                          <label className="text-[10px] font-bold text-[#281C19] uppercase">
+                            Landmark (Optional)
+                          </label>
                           <input
                             type="text"
                             value={addressForm.landmark}
-                            onChange={(e) => setAddressForm({ ...addressForm, landmark: e.target.value })}
+                            onChange={(e) =>
+                              setAddressForm({
+                                ...addressForm,
+                                landmark: e.target.value,
+                              })
+                            }
                             placeholder="Near City Hospital"
                             className="w-full bg-white border border-[#EFE8DF] rounded-xl px-3 py-2 text-xs text-[#281C19] focus:outline-none focus:border-[#8C6239]"
                           />
@@ -914,29 +1103,42 @@ export default function CheckoutPage() {
                     onClick={handleConfirmAddressStep}
                     className="bg-[#8C6239] hover:bg-[#724E2B] text-white py-2.5 px-6 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center gap-2 transition-all shadow-sm cursor-pointer mt-4"
                   >
-                    Confirm Address & Proceed <FiArrowRight className="w-4 h-4" />
+                    Confirm Address & Proceed{" "}
+                    <FiArrowRight className="w-4 h-4" />
                   </button>
                 </div>
               )}
             </div>
 
             {/* STEP 3: DELIVERY METHOD */}
-            <div className={`bg-white border rounded-[20px] overflow-hidden transition-all duration-300 shadow-sm ${
-              activeStep === 3 ? "border-[#8C6239] ring-2 ring-[#8C6239]/10" : "border-[#EFE8DF]"
-            }`}>
+            <div
+              className={`bg-white border rounded-[20px] overflow-hidden transition-all duration-300 shadow-sm ${
+                activeStep === 3
+                  ? "border-[#8C6239] ring-2 ring-[#8C6239]/10"
+                  : "border-[#EFE8DF]"
+              }`}
+            >
               <div
                 onClick={() => setActiveStep(3)}
                 className="p-5 flex items-center justify-between cursor-pointer bg-white select-none"
               >
                 <div className="flex items-center gap-3">
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
-                    activeStep > 3 ? "bg-[#8C6239] text-white" : "bg-[#FAF7F2] text-[#8C6239] border border-[#EFE8DF]"
-                  }`}>
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
+                      activeStep > 3
+                        ? "bg-[#8C6239] text-white"
+                        : "bg-[#FAF7F2] text-[#8C6239] border border-[#EFE8DF]"
+                    }`}
+                  >
                     {activeStep > 3 ? <FiCheck className="w-4 h-4" /> : "3"}
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-[#281C19]">Delivery Options</h3>
-                    <p className="text-[11px] text-[#8A7973]">Choose shipping speed & assembly service</p>
+                    <h3 className="text-sm font-bold text-[#281C19]">
+                      Delivery Options
+                    </h3>
+                    <p className="text-[11px] text-[#8A7973]">
+                      Choose shipping speed & assembly service
+                    </p>
                   </div>
                 </div>
               </div>
@@ -954,13 +1156,16 @@ export default function CheckoutPage() {
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-[#281C19]">Standard White Glove Delivery</span>
+                        <span className="text-xs font-bold text-[#281C19]">
+                          Standard White Glove Delivery
+                        </span>
                         <span className="text-xs font-bold text-[#8C6239]">
                           {subtotal >= 50000 ? "FREE" : "₹1,500"}
                         </span>
                       </div>
                       <p className="text-[11px] text-[#8A7973] mt-1">
-                        Delivered in 3 - 5 business days. Includes scheduled appointment & room-of-choice placement.
+                        Delivered in 3 - 5 business days. Includes scheduled
+                        appointment & room-of-choice placement.
                       </p>
                     </div>
 
@@ -974,11 +1179,16 @@ export default function CheckoutPage() {
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-[#281C19]">Express + Assembly</span>
-                        <span className="text-xs font-bold text-[#8C6239]">₹2,500</span>
+                        <span className="text-xs font-bold text-[#281C19]">
+                          Express + Assembly
+                        </span>
+                        <span className="text-xs font-bold text-[#8C6239]">
+                          ₹2,500
+                        </span>
                       </div>
                       <p className="text-[11px] text-[#8A7973] mt-1">
-                        Guaranteed 48-hour delivery. Full furniture assembly & packaging removal included.
+                        Guaranteed 48-hour delivery. Full furniture assembly &
+                        packaging removal included.
                       </p>
                     </div>
                   </div>
@@ -994,9 +1204,13 @@ export default function CheckoutPage() {
             </div>
 
             {/* STEP 4: PAYMENT METHOD SELECTION */}
-            <div className={`bg-white border rounded-[20px] overflow-hidden transition-all duration-300 shadow-sm ${
-              activeStep === 4 ? "border-[#8C6239] ring-2 ring-[#8C6239]/10" : "border-[#EFE8DF]"
-            }`}>
+            <div
+              className={`bg-white border rounded-[20px] overflow-hidden transition-all duration-300 shadow-sm ${
+                activeStep === 4
+                  ? "border-[#8C6239] ring-2 ring-[#8C6239]/10"
+                  : "border-[#EFE8DF]"
+              }`}
+            >
               <div
                 onClick={() => setActiveStep(4)}
                 className="p-5 flex items-center justify-between cursor-pointer bg-white select-none"
@@ -1006,8 +1220,12 @@ export default function CheckoutPage() {
                     4
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-[#281C19]">Payment Method</h3>
-                    <p className="text-[11px] text-[#8A7973]">Select your preferred payment option</p>
+                    <h3 className="text-sm font-bold text-[#281C19]">
+                      Payment Method
+                    </h3>
+                    <p className="text-[11px] text-[#8A7973]">
+                      Select your preferred payment option
+                    </p>
                   </div>
                 </div>
               </div>
@@ -1026,17 +1244,26 @@ export default function CheckoutPage() {
                           className="accent-[#8C6239]"
                         />
                         <FiCreditCard className="w-5 h-5 text-[#8C6239]" />
-                        <span className="text-xs font-bold text-[#281C19]">Credit / Debit Card</span>
+                        <span className="text-xs font-bold text-[#281C19]">
+                          Credit / Debit Card
+                        </span>
                       </label>
 
                       {paymentMethod === "card" && (
                         <div className="p-4 pt-0 border-t border-[#EFE8DF] bg-[#FAF7F2]/40 space-y-3">
                           <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-[#281C19] uppercase">Card Number</label>
+                            <label className="text-[10px] font-bold text-[#281C19] uppercase">
+                              Card Number
+                            </label>
                             <input
                               type="text"
                               value={cardDetails.cardNumber}
-                              onChange={(e) => setCardDetails({ ...cardDetails, cardNumber: e.target.value })}
+                              onChange={(e) =>
+                                setCardDetails({
+                                  ...cardDetails,
+                                  cardNumber: e.target.value,
+                                })
+                              }
                               placeholder="4532 •••• •••• 8912"
                               className="w-full bg-white border border-[#EFE8DF] rounded-xl px-3 py-2 text-xs text-[#281C19] focus:outline-none focus:border-[#8C6239]"
                             />
@@ -1044,23 +1271,37 @@ export default function CheckoutPage() {
 
                           <div className="grid grid-cols-2 gap-3">
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-[#281C19] uppercase">Expiry Date</label>
+                              <label className="text-[10px] font-bold text-[#281C19] uppercase">
+                                Expiry Date
+                              </label>
                               <input
                                 type="text"
                                 value={cardDetails.expiry}
-                                onChange={(e) => setCardDetails({ ...cardDetails, expiry: e.target.value })}
+                                onChange={(e) =>
+                                  setCardDetails({
+                                    ...cardDetails,
+                                    expiry: e.target.value,
+                                  })
+                                }
                                 placeholder="MM/YY"
                                 className="w-full bg-white border border-[#EFE8DF] rounded-xl px-3 py-2 text-xs text-[#281C19] focus:outline-none focus:border-[#8C6239]"
                               />
                             </div>
 
                             <div className="space-y-1">
-                              <label className="text-[10px] font-bold text-[#281C19] uppercase">CVV Code</label>
+                              <label className="text-[10px] font-bold text-[#281C19] uppercase">
+                                CVV Code
+                              </label>
                               <input
                                 type="password"
                                 maxLength={4}
                                 value={cardDetails.cvv}
-                                onChange={(e) => setCardDetails({ ...cardDetails, cvv: e.target.value })}
+                                onChange={(e) =>
+                                  setCardDetails({
+                                    ...cardDetails,
+                                    cvv: e.target.value,
+                                  })
+                                }
                                 placeholder="•••"
                                 className="w-full bg-white border border-[#EFE8DF] rounded-xl px-3 py-2 text-xs text-[#281C19] focus:outline-none focus:border-[#8C6239]"
                               />
@@ -1081,13 +1322,17 @@ export default function CheckoutPage() {
                           className="accent-[#8C6239]"
                         />
                         <FiSmartphone className="w-5 h-5 text-[#8C6239]" />
-                        <span className="text-xs font-bold text-[#281C19]">Instant UPI / QR Code (GPay, PhonePe, Paytm)</span>
+                        <span className="text-xs font-bold text-[#281C19]">
+                          Instant UPI / QR Code (GPay, PhonePe, Paytm)
+                        </span>
                       </label>
 
                       {paymentMethod === "upi" && (
                         <div className="p-4 pt-0 border-t border-[#EFE8DF] bg-[#FAF7F2]/40 space-y-3">
                           <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-[#281C19] uppercase">Enter VPA / UPI ID</label>
+                            <label className="text-[10px] font-bold text-[#281C19] uppercase">
+                              Enter VPA / UPI ID
+                            </label>
                             <input
                               type="text"
                               value={upiId}
@@ -1096,7 +1341,10 @@ export default function CheckoutPage() {
                               className="w-full bg-white border border-[#EFE8DF] rounded-xl px-3 py-2 text-xs text-[#281C19] focus:outline-none focus:border-[#8C6239]"
                             />
                           </div>
-                          <p className="text-[10px] text-[#8A7973]">A payment request notification will be sent to your UPI app.</p>
+                          <p className="text-[10px] text-[#8A7973]">
+                            A payment request notification will be sent to your
+                            UPI app.
+                          </p>
                         </div>
                       )}
                     </div>
@@ -1112,12 +1360,16 @@ export default function CheckoutPage() {
                           className="accent-[#8C6239]"
                         />
                         <FiHome className="w-5 h-5 text-[#8C6239]" />
-                        <span className="text-xs font-bold text-[#281C19]">Net Banking (All Major Indian Banks)</span>
+                        <span className="text-xs font-bold text-[#281C19]">
+                          Net Banking (All Major Indian Banks)
+                        </span>
                       </label>
 
                       {paymentMethod === "netbanking" && (
                         <div className="p-4 pt-0 border-t border-[#EFE8DF] bg-[#FAF7F2]/40 space-y-2">
-                          <label className="text-[10px] font-bold text-[#281C19] uppercase">Select Bank</label>
+                          <label className="text-[10px] font-bold text-[#281C19] uppercase">
+                            Select Bank
+                          </label>
                           <select
                             value={selectedBank}
                             onChange={(e) => setSelectedBank(e.target.value)}
@@ -1144,7 +1396,9 @@ export default function CheckoutPage() {
                           className="accent-[#8C6239]"
                         />
                         <FiShield className="w-5 h-5 text-[#8C6239]" />
-                        <span className="text-xs font-bold text-[#281C19]">Cash on Delivery / Pay on Delivery</span>
+                        <span className="text-xs font-bold text-[#281C19]">
+                          Cash on Delivery / Pay on Delivery
+                        </span>
                       </label>
                     </div>
                   </div>
@@ -1158,23 +1412,34 @@ export default function CheckoutPage() {
             <div className="bg-white border border-[#EFE8DF] rounded-[24px] p-6 space-y-6 shadow-lg shadow-[#8C6239]/5">
               <h2 className="text-base font-bold text-[#281C19] border-b border-[#EFE8DF] pb-4 flex items-center justify-between">
                 <span>Order Summary</span>
-                <span className="text-xs text-[#8A7973] font-normal">{cartItems.length} items</span>
+                <span className="text-xs text-[#8A7973] font-normal">
+                  {cartItems.length} items
+                </span>
               </h2>
 
               {/* Items Preview */}
               <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1">
                 {cartItems.map((item, idx) => (
-                  <div key={idx} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
+                  <div
+                    key={idx}
+                    className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0"
+                  >
                     <div className="w-14 h-14 bg-[#FAF7F2] rounded-xl p-1 flex items-center justify-center flex-shrink-0 border border-[#EFE8DF]">
                       {item.thumbnail && item.thumbnail.startsWith("http") ? (
-                        <img src={item.thumbnail} alt={item.name} className="max-h-full max-w-full object-contain" />
+                        <img
+                          src={item.thumbnail}
+                          alt={item.name}
+                          className="max-h-full max-w-full object-contain"
+                        />
                       ) : (
                         <ProductIllustration name={item.name} />
                       )}
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <h4 className="text-xs font-bold text-[#281C19] truncate">{item.name}</h4>
+                      <h4 className="text-xs font-bold text-[#281C19] truncate">
+                        {item.name}
+                      </h4>
                       <p className="text-[10px] text-[#8A7973]">
                         Qty: {item.quantity} • {item.color}
                       </p>
@@ -1187,7 +1452,10 @@ export default function CheckoutPage() {
               </div>
 
               {/* Promo Coupon Code Form */}
-              <form onSubmit={handleApplyPromoCode} className="space-y-2 pt-2 border-t border-[#EFE8DF]">
+              <form
+                onSubmit={handleApplyPromoCode}
+                className="space-y-2 pt-2 border-t border-[#EFE8DF]"
+              >
                 <label className="text-[10px] font-extrabold text-[#281C19] uppercase tracking-wider block">
                   Promo / Coupon Code
                 </label>
@@ -1195,7 +1463,9 @@ export default function CheckoutPage() {
                   <div className="flex items-center justify-between bg-[#FAF7F2] border border-[#8C6239] rounded-xl px-3 py-2">
                     <div className="flex items-center gap-1.5 text-xs font-bold text-[#8C6239]">
                       <FiPercent className="w-4 h-4" />
-                      <span>{discountCodeName} ({appliedDiscount}% Off)</span>
+                      <span>
+                        {discountCodeName} ({appliedDiscount}% Off)
+                      </span>
                     </div>
                     <button
                       type="button"
@@ -1228,31 +1498,41 @@ export default function CheckoutPage() {
               <div className="space-y-2.5 pt-4 border-t border-[#EFE8DF] text-xs text-[#8A7973]">
                 <div className="flex justify-between">
                   <span>Bag Subtotal</span>
-                  <span className="font-bold text-[#281C19]">₹{subtotal.toLocaleString("en-IN")}</span>
+                  <span className="font-bold text-[#281C19]">
+                    ₹{subtotal.toLocaleString("en-IN")}
+                  </span>
                 </div>
 
                 {appliedDiscount > 0 && (
                   <div className="flex justify-between text-[#8C6239]">
                     <span>Discount ({discountCodeName})</span>
-                    <span className="font-bold">-₹{discountAmount.toLocaleString("en-IN")}</span>
+                    <span className="font-bold">
+                      -₹{discountAmount.toLocaleString("en-IN")}
+                    </span>
                   </div>
                 )}
 
                 <div className="flex justify-between">
                   <span>Estimated Shipping</span>
                   <span className="font-bold text-[#281C19]">
-                    {shippingCost === 0 ? "FREE" : `₹${shippingCost.toLocaleString("en-IN")}`}
+                    {shippingCost === 0
+                      ? "FREE"
+                      : `₹${shippingCost.toLocaleString("en-IN")}`}
                   </span>
                 </div>
 
                 <div className="flex justify-between">
                   <span>Est. GST (18%)</span>
-                  <span className="font-bold text-[#281C19]">₹{estimatedTax.toLocaleString("en-IN")}</span>
+                  <span className="font-bold text-[#281C19]">
+                    ₹{estimatedTax.toLocaleString("en-IN")}
+                  </span>
                 </div>
 
                 <div className="flex justify-between items-center text-sm font-extrabold text-[#281C19] pt-3 border-t border-[#EFE8DF]">
                   <span>Total Amount</span>
-                  <span className="text-lg text-[#8C6239]">₹{grandTotal.toLocaleString("en-IN")}</span>
+                  <span className="text-lg text-[#8C6239]">
+                    ₹{grandTotal.toLocaleString("en-IN")}
+                  </span>
                 </div>
               </div>
 
@@ -1289,14 +1569,22 @@ export default function CheckoutPage() {
               <div className="w-12 h-12 bg-[#FAF7F2] rounded-full flex items-center justify-center mx-auto text-[#8C6239] mb-2">
                 <FiShield className="w-6 h-6" />
               </div>
-              <h3 className="text-xl font-bold text-[#281C19]">Verify your details</h3>
+              <h3 className="text-xl font-bold text-[#281C19]">
+                Verify your details
+              </h3>
               <p className="text-xs text-[#8A7973]">
-                Enter the 6-digit OTP code sent to <span className="font-bold text-[#281C19]">{contactInfo.email}</span>
+                Enter the 6-digit OTP code sent to{" "}
+                <span className="font-bold text-[#281C19]">
+                  {contactInfo.email}
+                </span>
               </p>
             </div>
 
             <form onSubmit={handleVerifyOtpSubmit} className="space-y-4">
-              <div className="flex justify-between gap-2" onPaste={handleOtpPaste}>
+              <div
+                className="flex justify-between gap-2"
+                onPaste={handleOtpPaste}
+              >
                 {otpDigits.map((digit, idx) => (
                   <input
                     key={idx}
@@ -1360,20 +1648,30 @@ export default function CheckoutPage() {
 
             <div className="flex items-center justify-between border-b border-[#EFE8DF] pb-4">
               <div className="flex items-center gap-2">
-                <span className="font-extrabold text-[#281C19] text-base tracking-wider uppercase">Nestro Pay</span>
-                <span className="text-[9px] bg-[#8C6239] text-white px-2 py-0.5 rounded font-bold uppercase tracking-widest">Secure</span>
+                <span className="font-extrabold text-[#281C19] text-base tracking-wider uppercase">
+                  Nestro Pay
+                </span>
+                <span className="text-[9px] bg-[#8C6239] text-white px-2 py-0.5 rounded font-bold uppercase tracking-widest">
+                  Secure
+                </span>
               </div>
-              <span className="text-xs font-bold text-[#8C6239]">Amount: ₹{grandTotal.toLocaleString("en-IN")}</span>
+              <span className="text-xs font-bold text-[#8C6239]">
+                Amount: ₹{grandTotal.toLocaleString("en-IN")}
+              </span>
             </div>
 
             <div className="bg-[#FAF7F2] border border-[#EFE8DF] rounded-xl p-4 space-y-2">
               <div className="flex justify-between text-xs text-[#8A7973]">
                 <span>Customer</span>
-                <span className="font-bold text-[#281C19]">{contactInfo.name}</span>
+                <span className="font-bold text-[#281C19]">
+                  {contactInfo.name}
+                </span>
               </div>
               <div className="flex justify-between text-xs text-[#8A7973]">
                 <span>Payment Mode</span>
-                <span className="font-bold text-[#8C6239] uppercase">{paymentMethod}</span>
+                <span className="font-bold text-[#8C6239] uppercase">
+                  {paymentMethod}
+                </span>
               </div>
               <div className="flex justify-between text-xs text-[#8A7973]">
                 <span>Delivery To</span>
@@ -1388,7 +1686,9 @@ export default function CheckoutPage() {
               <div>
                 <p className="font-bold">Payment Window Gateway Hook</p>
                 <p className="text-[11px] text-amber-700 mt-0.5">
-                  This window triggers your Razorpay/Stripe payment gateway integration. Click below to simulate instant payment completion.
+                  This window triggers your Razorpay/Stripe payment gateway
+                  integration. Click below to simulate instant payment
+                  completion.
                 </p>
               </div>
             </div>

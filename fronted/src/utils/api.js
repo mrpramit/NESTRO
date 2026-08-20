@@ -373,10 +373,63 @@ export const loginUser = async (loginData) => {
     }
 };
 
+export const loginAdmin = async (loginData) => {
+    try {
+        const response = await client.post("user/admin-login", loginData);
+        return {
+            success: response.data.success,
+            data: response.data.data,
+            message: response.data.message
+        };
+    } catch (error) {
+        return {
+            success: false,
+            message: error.response?.data?.message || "Internal Server Error"
+        };
+    }
+};
+
+export const logoutUser = async () => client.post("user/logout");
+export const logoutAdmin = async () => client.post("user/admin-logout");
+
 export const fetchUserProfile = async (token = null) => {
     try {
         const config = token ? { headers: { Authorization: token } } : {};
         const response = await client.get("user/profile", config);
+        return {
+            success: response.data.success,
+            user: response.data.user,
+            orders: response.data.orders || [],
+            message: response.data.message
+        };
+    } catch (error) {
+        return {
+            success: false,
+            message: error.response?.data?.message || "Internal Server Error"
+        };
+    }
+};
+
+export const fetchAdminProfile = async () => {
+    try {
+        const response = await client.get("user/admin-profile");
+        return {
+            success: response.data.success,
+            user: response.data.user,
+            orders: response.data.orders || [],
+            message: response.data.message
+        };
+    } catch (error) {
+        return {
+            success: false,
+            message: error.response?.data?.message || "Internal Server Error"
+        };
+    }
+};
+
+export const updateAdminProfile = async (profileData) => {
+    try {
+        const response = await client.put("user/admin-profile/update", profileData);
         return {
             success: response.data.success,
             user: response.data.user,
@@ -387,6 +440,48 @@ export const fetchUserProfile = async (token = null) => {
             success: false,
             message: error.response?.data?.message || "Internal Server Error"
         };
+    }
+};
+
+export const deleteAdminProfile = async () => {
+    try {
+        const response = await client.delete("user/admin-profile/delete");
+        return {
+            success: response.data.success,
+            message: response.data.message
+        };
+    } catch (error) {
+        return {
+            success: false,
+            message: error.response?.data?.message || "Internal Server Error"
+        };
+    }
+};
+
+export const addAdminAddress = async (addressData) => {
+    try {
+        const response = await client.post("user/admin-profile/address/add", addressData);
+        return { success: response.data.success, user: response.data.user, message: response.data.message };
+    } catch (error) {
+        return { success: false, message: error.response?.data?.message || "Internal Server Error" };
+    }
+};
+
+export const deleteAdminAddress = async (addressId) => {
+    try {
+        const response = await client.delete(`user/admin-profile/address/delete/${addressId}`);
+        return { success: response.data.success, message: response.data.message };
+    } catch (error) {
+        return { success: false, message: error.response?.data?.message || "Internal Server Error" };
+    }
+};
+
+export const setAdminDefaultAddress = async (addressId) => {
+    try {
+        const response = await client.patch(`user/admin-profile/address/default/${addressId}`);
+        return { success: response.data.success, message: response.data.message };
+    } catch (error) {
+        return { success: false, message: error.response?.data?.message || "Internal Server Error" };
     }
 };
 
@@ -472,6 +567,106 @@ export const deleteUserAccount = async () => {
 export const sendOrderEmail = async (orderPayload) => {
     try {
         const response = await client.post("user/send-order-email", orderPayload);
+        return {
+            success: response.data.success,
+            message: response.data.message
+        };
+    } catch (error) {
+        return {
+            success: false,
+            message: error.response?.data?.message || "Internal Server Error"
+        };
+    }
+};
+
+export const createOrderApi = async (orderPayload) => {
+    try {
+        const response = await client.post("order/create", orderPayload);
+        return {
+            success: response.data.success,
+            data: response.data.data?.order || null,
+            message: response.data.message
+        };
+    } catch (error) {
+        return {
+            success: false,
+            data: null,
+            message: error.response?.data?.message || "Internal Server Error"
+        };
+    }
+};
+
+export const cancelOrderApi = async (orderId) => {
+    try {
+        const response = await client.patch(`order/${orderId}/cancel`);
+        return {
+            success: response.data.success,
+            data: response.data.data?.order || null,
+            message: response.data.message
+        };
+    } catch (error) {
+        return {
+            success: false,
+            data: null,
+            message: error.response?.data?.message || "Internal Server Error"
+        };
+    }
+};
+
+// Admin: Users management
+export const fetchUsers = async () => {
+    try {
+        const response = await client.get("user");
+        return {
+            success: response.data.success,
+            data: response.data.data?.users || response.data.data || [],
+            message: response.data.message
+        };
+    } catch (error) {
+        return {
+            success: false,
+            data: [],
+            message: error.response?.data?.message || "Internal Server Error"
+        };
+    }
+};
+
+export const fetchUserByIdApi = async (id) => {
+    try {
+        const response = await client.get(`user/${id}`);
+        return {
+            success: response.data.success,
+            data: response.data.data || null,
+            message: response.data.message
+        };
+    } catch (error) {
+        return {
+            success: false,
+            data: null,
+            message: error.response?.data?.message || "Internal Server Error"
+        };
+    }
+};
+
+export const updateUserByIdApi = async (id, payload) => {
+    try {
+        const response = await client.put(`user/${id}`, payload);
+        return {
+            success: response.data.success,
+            data: response.data.user || null,
+            message: response.data.message
+        };
+    } catch (error) {
+        return {
+            success: false,
+            message: error.response?.data?.message || "Internal Server Error"
+        };
+    }
+};
+
+export const deleteUserByIdApi = async (id) => {
+    try {
+        const response = await client.delete(`user/${id}`);
         return {
             success: response.data.success,
             message: response.data.message

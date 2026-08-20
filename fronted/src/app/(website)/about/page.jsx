@@ -2,6 +2,7 @@
 
 import React from "react";
 import Hero from "@/components/common/Hero";
+import { cloudinaryAssets } from "@/utils/cloudinaryAssets";
 
 export default function AboutPage() {
   const stats = [
@@ -14,34 +15,75 @@ export default function AboutPage() {
   const values = [
     {
       title: "Sustainable Craft",
-      description: "We source responsibly — FSC-certified woods, natural fibres, and local artisans. Furniture that's good for your home and the planet.",
+      description:
+        "We source responsibly — FSC-certified woods, natural fibres, and local artisans. Furniture that's good for your home and the planet.",
       icon: (
-        <svg className="w-6 h-6 text-[#8C6239]" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M2 22c1.25-1.906 2.5-3.813 4.25-5.188A39.4 39.4 0 0 1 12.5 13.5c1.782-.415 3.564-.83 5.312-1.688A19.8 19.8 0 0 0 22 8c.25-1.563-.5-3.125-1.5-4.125S17.562 2.25 16 2.5A19.8 19.8 0 0 0 12 6.188c-.858 1.748-1.273 3.53-1.688 5.312a39.4 39.4 0 0 1-3.312 6.25c-1.375 1.75-3.281 3-5 4.25Z" />
-          <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 13.5 19.5 4.5" />
+        <svg
+          className="w-6 h-6 text-[#8C6239]"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M2 22c1.25-1.906 2.5-3.813 4.25-5.188A39.4 39.4 0 0 1 12.5 13.5c1.782-.415 3.564-.83 5.312-1.688A19.8 19.8 0 0 0 22 8c.25-1.563-.5-3.125-1.5-4.125S17.562 2.25 16 2.5A19.8 19.8 0 0 0 12 6.188c-.858 1.748-1.273 3.53-1.688 5.312a39.4 39.4 0 0 1-3.312 6.25c-1.375 1.75-3.281 3-5 4.25Z"
+          />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M10.5 13.5 19.5 4.5"
+          />
         </svg>
-      )
+      ),
     },
     {
       title: "Uncompromising Quality",
-      description: "Every piece passes a 23-point quality check before it reaches your home. We back it with a 5-year warranty.",
+      description:
+        "Every piece passes a 23-point quality check before it reaches your home. We back it with a 5-year warranty.",
       icon: (
-        <svg className="w-6 h-6 text-[#8C6239]" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M6 3h12l4 6-10 12L2 9Z" />
-          <path strokeLinecap="round" strokeLinejoin="round" d="M11 3 8 9l4 12 4-12-3-6" />
+        <svg
+          className="w-6 h-6 text-[#8C6239]"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M6 3h12l4 6-10 12L2 9Z"
+          />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M11 3 8 9l4 12 4-12-3-6"
+          />
           <path strokeLinecap="round" strokeLinejoin="round" d="M2 9h20" />
         </svg>
-      )
+      ),
     },
     {
       title: "Design with Soul",
-      description: "We don't chase trends. We design furniture that ages gracefully and belongs in every chapter of your life.",
+      description:
+        "We don't chase trends. We design furniture that ages gracefully and belongs in every chapter of your life.",
       icon: (
-        <svg className="w-6 h-6 text-[#8C6239]" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+        <svg
+          className="w-6 h-6 text-[#8C6239]"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"
+          />
         </svg>
-      )
-    }
+      ),
+    },
   ];
 
   const team = [
@@ -67,18 +109,20 @@ export default function AboutPage() {
     },
   ];
 
-
   return (
     <main className="bg-[#FAF7F2] pb-16 flex-grow">
       {/* About Reusable Hero Component */}
       <Hero
         title={
           <>
-            Furniture crafted with <span className="italic font-serif text-[#C4A484] font-normal">purpose</span>
+            Furniture crafted with{" "}
+            <span className="italic font-serif text-[#C4A484] font-normal">
+              purpose
+            </span>
           </>
         }
         description="Founded in 2018, Nestro was born from a belief that beautiful furniture shouldn't be a luxury. We work directly with master craftsmen across India and Scandinavia to bring you pieces that are honest in material, thoughtful in design, and built to outlast trends."
-        image="/about-hero.png"
+        image={cloudinaryAssets["about-hero.png"]}
       />
 
       {/* Stats Grid Container */}
@@ -160,7 +204,7 @@ export default function AboutPage() {
                   {member.initials}
                 </span>
               </div>
-              
+
               {/* Info section */}
               <div className="p-4 border-t border-[#EFE8DF]/50">
                 <h3 className="font-bold text-[#281C19] group-hover:text-[#8C6239] transition-colors duration-300 text-xs md:text-sm">

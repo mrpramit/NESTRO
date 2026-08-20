@@ -12,8 +12,9 @@ import {
   updateUserProfile,
   addUserAddress,
   deleteUserAddress,
-  setUserDefaultAddress
+  setUserDefaultAddress,
 } from "@/utils/api";
+import { createOrderApi } from "@/utils/api";
 import {
   FiUser,
   FiMail,
@@ -31,49 +32,9 @@ import {
   FiClock,
   FiTruck,
   FiChevronRight,
-  FiRefreshCw
+  FiRefreshCw,
 } from "react-icons/fi";
 import ProductIllustration from "@/components/website/ProductIllustration";
-
-// Default Sample Order fallback matching the user's screenshot order
-const DEFAULT_SAMPLE_ORDERS = [
-  {
-    orderId: "NES-545446",
-    date: "18 August 2026",
-    status: "Confirmed",
-    items: [
-      {
-        id: "p-1",
-        name: "Classic Velvet Chesterfield Sofa",
-        price: 86400,
-        quantity: 1,
-        color: "Navy Blue",
-        material: "Velvet & Solid Wood"
-      },
-      {
-        id: "p-2",
-        name: "Scandinavian 3-Seater Sofa",
-        price: 57000,
-        quantity: 1,
-        color: "Light Grey",
-        material: "Linen Fabric & Oak"
-      }
-    ],
-    subtotal: 143400,
-    shippingCost: 0,
-    estimatedTax: 25812,
-    grandTotal: 169212,
-    paymentMethod: "Cash on Delivery",
-    shippingAddress: {
-      fullName: "Pramit Sachan",
-      addressLine: "Sujaur, Bhognipur",
-      city: "UTTAR PRADESH",
-      state: "UP",
-      pincode: "209112",
-      mobile: "6306575108"
-    }
-  }
-];
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -82,7 +43,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("orders"); // orders | addresses | edit-profile
   const [orders, setOrders] = useState([]);
-  
+
   // Modals & Forms State
   const [showAddressModal, setShowAddressModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -93,49 +54,27 @@ export default function ProfilePage() {
     addressLine: "",
     city: "",
     state: "",
-    isDefault: false
+    isDefault: false,
   });
-  
+
   const [profileForm, setProfileForm] = useState({
     name: "",
-    mobile: ""
+    mobile: "",
   });
 
   const loadProfile = async () => {
     try {
-      // Load saved orders from localStorage and merge with seed orders so
-      // orders placed before localStorage saving was added still appear.
-      if (typeof window !== "undefined") {
-        let storedOrders = [];
-        try {
-          const raw = localStorage.getItem("nestro_orders");
-          if (raw) {
-            const parsed = JSON.parse(raw);
-            if (Array.isArray(parsed)) storedOrders = parsed;
-          }
-        } catch (e) {
-          storedOrders = [];
-        }
-
-        // Merge: localStorage orders first (newest), then any seed orders
-        // whose orderId is NOT already in localStorage (older / pre-persistence orders)
-        const storedIds = new Set(storedOrders.map((o) => o.orderId));
-        const missingSeeds = DEFAULT_SAMPLE_ORDERS.filter(
-          (o) => !storedIds.has(o.orderId)
-        );
-        const merged = [...storedOrders, ...missingSeeds];
-        setOrders(merged.length > 0 ? merged : DEFAULT_SAMPLE_ORDERS);
-      }
-
       const res = await fetchUserProfile();
       if (res.success && res.user) {
         setUser(res.user);
         setProfileForm({
           name: res.user.name || "",
-          mobile: res.user.mobile || ""
+          mobile: res.user.mobile || "",
         });
         if (typeof window !== "undefined") {
           localStorage.setItem("nestro_user", JSON.stringify(res.user));
+
+          setOrders(res.orders || []);
         }
       } else {
         if (typeof window !== "undefined") {
@@ -153,7 +92,11 @@ export default function ProfilePage() {
   };
 
   useEffect(() => {
-    loadProfile();
+    const timeoutId = setTimeout(() => {
+      loadProfile();
+    }, 0);
+
+    return () => clearTimeout(timeoutId);
   }, [router]);
 
   const handleLogout = () => {
@@ -169,14 +112,14 @@ export default function ProfilePage() {
   const handleReorderItem = (item) => {
     dispatch(
       addToCart({
-        id: item.id || `reorder-${Date.now()}`,
+        id: item.id || `reorder-${item.name}-${item.price}`,
         name: item.name,
         price: item.price,
         thumbnail: item.thumbnail,
         color: item.color || "Standard",
         material: item.material || "Wood",
         quantity: item.quantity || 1,
-      })
+      }),
     );
     toast.success(`${item.name} added back to your cart!`);
   };
@@ -213,7 +156,7 @@ export default function ProfilePage() {
   const handleAddressFormChange = (e) => {
     setAddressForm({
       ...addressForm,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
 
@@ -246,7 +189,7 @@ export default function ProfilePage() {
           addressLine: "",
           city: "",
           state: "",
-          isDefault: false
+          isDefault: false,
         });
       } else {
         toast.error(res.message || "Failed to add address");
@@ -270,7 +213,7 @@ export default function ProfilePage() {
       confirmButtonText: "Yes, delete it",
       cancelButtonText: "Cancel",
       background: "#ffffff",
-      color: "#281C19"
+      color: "#281C19",
     });
 
     if (result.isConfirmed) {
@@ -307,7 +250,9 @@ export default function ProfilePage() {
     return (
       <div className="min-h-[400px] flex flex-col items-center justify-center gap-3">
         <div className="w-8 h-8 border-3 border-[#8C6239] border-t-transparent rounded-full animate-spin" />
-        <span className="text-xs font-bold text-[#8C6239] tracking-wider uppercase">Loading your profile...</span>
+        <span className="text-xs font-bold text-[#8C6239] tracking-wider uppercase">
+          Loading your profile...
+        </span>
       </div>
     );
   }
@@ -315,24 +260,29 @@ export default function ProfilePage() {
   if (!user) return null;
 
   const initials = user.name
-    ? user.name.split(" ").map((n) => n[0]).join("").substring(0, 2).toUpperCase()
+    ? user.name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .substring(0, 2)
+        .toUpperCase()
     : "U";
 
   return (
     <div className="w-full max-w-5xl bg-white border border-[#EFE8DF] rounded-[32px] overflow-hidden shadow-xl shadow-[#8C6239]/5 flex flex-col md:flex-row min-h-[550px] my-6">
-      
       {/* LEFT SIDEBAR: Personal Card info & Navigation */}
       <div className="w-full md:w-[28%] bg-[#FAF7F2] border-r border-[#EFE8DF] p-6 flex flex-col justify-between items-center md:items-start text-center md:text-left gap-8 flex-shrink-0">
-        
         <div className="space-y-6 w-full flex flex-col items-center md:items-start">
           {/* Avatar representation */}
           <div className="w-20 h-20 rounded-3xl bg-[#8C6239] text-[#FAF7F2] flex items-center justify-center font-black text-2xl shadow-md border-2 border-white ring-8 ring-[#8C6239]/10">
             {initials}
           </div>
-          
+
           {/* User names */}
           <div className="space-y-1 w-full">
-            <h2 className="text-lg font-extrabold text-[#281C19] truncate">{user.name}</h2>
+            <h2 className="text-lg font-extrabold text-[#281C19] truncate">
+              {user.name}
+            </h2>
             <p className="text-xs text-[#8A7973] truncate">{user.email}</p>
             <span className="inline-block text-[8px] font-black tracking-widest bg-[#3E2A24] text-white px-2.5 py-0.5 rounded-full uppercase mt-1">
               {user.role || "Verified Customer"}
@@ -401,23 +351,88 @@ export default function ProfilePage() {
             Logout
           </button>
         </div>
-
       </div>
 
       {/* RIGHT PANEL: Dashboard Tab Content */}
       <div className="flex-1 p-6 md:p-8 space-y-6 overflow-y-auto max-h-[750px]">
-        
         {/* TAB 1: ORDER HISTORY */}
         {activeTab === "orders" && (
           <div className="space-y-6">
             <div className="flex items-center justify-between border-b border-[#EFE8DF] pb-4">
               <div className="space-y-0.5">
-                <h3 className="text-base font-bold text-[#281C19]">Order History</h3>
-                <p className="text-xs text-[#8A7973]">Track, view, and re-order your previous purchases.</p>
+                <h3 className="text-base font-bold text-[#281C19]">
+                  Order History
+                </h3>
+                <p className="text-xs text-[#8A7973]">
+                  Track, view, and re-order your previous purchases.
+                </p>
               </div>
-              <span className="text-xs font-bold text-[#8C6239] bg-[#FAF7F2] px-3 py-1 rounded-full border border-[#EFE8DF]">
-                {orders.length} Total Orders
-              </span>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={async () => {
+                    // Sync local orders to backend
+                    if (!user) {
+                      toast.error("Please sign in to sync orders");
+                      return;
+                    }
+                    const raw = localStorage.getItem("nestro_orders");
+                    if (!raw) {
+                      toast.info("No local orders to sync");
+                      return;
+                    }
+                    let parsed = [];
+                    try {
+                      parsed = JSON.parse(raw) || [];
+                    } catch (e) {
+                      toast.error("Could not read local orders");
+                      return;
+                    }
+                    if (!Array.isArray(parsed) || parsed.length === 0) {
+                      toast.info("No local orders to sync");
+                      return;
+                    }
+
+                    toast.info(`Syncing ${parsed.length} orders to server...`);
+                    let success = 0;
+                    for (const o of parsed) {
+                      const payload = {
+                        orderId:
+                          o.orderId || `NES-${Date.now().toString().slice(-6)}`,
+                        userId: user._id,
+                        items: o.items || o.itemsOrdered || [],
+                        subtotal: o.subtotal || o.subTotal || 0,
+                        discountAmount: o.discountAmount || o.discount || 0,
+                        shippingCost: o.shippingCost || 0,
+                        estimatedTax: o.estimatedTax || 0,
+                        grandTotal: o.grandTotal || o.total || 0,
+                        contactInfo: o.contactInfo || {
+                          name: user.name,
+                          email: user.email,
+                        },
+                        shippingAddress: o.shippingAddress || o.address || {},
+                        paymentMethod: o.paymentMethod || o.payment || "COD",
+                        status: o.status || "confirmed",
+                      };
+                      try {
+                        const res = await createOrderApi(payload);
+                        if (res.success) success += 1;
+                      } catch (err) {
+                        // ignore per-order errors
+                        console.warn("Order sync failed", err);
+                      }
+                    }
+                    toast.success(
+                      `Synced ${success}/${parsed.length} orders to server`,
+                    );
+                  }}
+                  className="text-xs font-bold bg-white border border-[#EFE8DF] px-3 py-1 rounded-full hover:shadow-sm"
+                >
+                  Sync orders to server
+                </button>
+                <span className="text-xs font-bold text-[#8C6239] bg-[#FAF7F2] px-3 py-1 rounded-full border border-[#EFE8DF]">
+                  {orders.length} Total Orders
+                </span>
+              </div>
             </div>
 
             {orders.length > 0 ? (
@@ -434,14 +449,18 @@ export default function ProfilePage() {
                           <span className="text-[10px] font-bold text-[#8A7973] uppercase tracking-wider block">
                             Order Number
                           </span>
-                          <span className="font-extrabold text-[#281C19] text-sm">{order.orderId}</span>
+                          <span className="font-extrabold text-[#281C19] text-sm">
+                            {order.orderId}
+                          </span>
                         </div>
                         <div className="h-6 w-px bg-[#EFE8DF] hidden sm:block" />
                         <div>
                           <span className="text-[10px] font-bold text-[#8A7973] uppercase tracking-wider block">
                             Placed On
                           </span>
-                          <span className="font-bold text-[#281C19]">{order.date}</span>
+                          <span className="font-bold text-[#281C19]">
+                            {order.date}
+                          </span>
                         </div>
                         <div className="h-6 w-px bg-[#EFE8DF] hidden sm:block" />
                         <div>
@@ -449,14 +468,18 @@ export default function ProfilePage() {
                             Total Paid
                           </span>
                           <span className="font-extrabold text-[#8C6239]">
-                            ₹{order.grandTotal ? order.grandTotal.toLocaleString("en-IN") : "0"}
+                            ₹
+                            {order.grandTotal
+                              ? order.grandTotal.toLocaleString("en-IN")
+                              : "0"}
                           </span>
                         </div>
                       </div>
 
                       <div className="flex items-center gap-2">
                         <span className="text-[10px] font-bold uppercase tracking-widest bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full border border-emerald-200 flex items-center gap-1">
-                          <FiCheck className="w-3 h-3" /> {order.status || "Confirmed"}
+                          <FiCheck className="w-3 h-3" />{" "}
+                          {order.status || "Confirmed"}
                         </span>
                       </div>
                     </div>
@@ -472,7 +495,8 @@ export default function ProfilePage() {
                             >
                               <div className="flex items-center gap-3 min-w-0">
                                 <div className="w-14 h-14 bg-[#FAF7F2] rounded-xl p-1.5 flex items-center justify-center border border-[#EFE8DF] flex-shrink-0">
-                                  {item.thumbnail && item.thumbnail.startsWith("http") ? (
+                                  {item.thumbnail &&
+                                  item.thumbnail.startsWith("http") ? (
                                     <img
                                       src={item.thumbnail}
                                       alt={item.name}
@@ -483,16 +507,22 @@ export default function ProfilePage() {
                                   )}
                                 </div>
                                 <div className="min-w-0">
-                                  <h4 className="text-xs font-bold text-[#281C19] truncate">{item.name}</h4>
+                                  <h4 className="text-xs font-bold text-[#281C19] truncate">
+                                    {item.name}
+                                  </h4>
                                   <p className="text-[10px] text-[#8A7973] mt-0.5">
-                                    Qty: {item.quantity} • Color: {item.color || "Standard"}
+                                    Qty: {item.quantity} • Color:{" "}
+                                    {item.color || "Standard"}
                                   </p>
                                 </div>
                               </div>
 
                               <div className="flex items-center gap-3 flex-shrink-0">
                                 <span className="text-xs font-bold text-[#281C19]">
-                                  ₹{(item.price * item.quantity).toLocaleString("en-IN")}
+                                  ₹
+                                  {(item.price * item.quantity).toLocaleString(
+                                    "en-IN",
+                                  )}
                                 </span>
                                 <button
                                   onClick={() => handleReorderItem(item)}
@@ -509,18 +539,26 @@ export default function ProfilePage() {
                       {/* Card Footer: Delivery & Payment Details */}
                       <div className="bg-[#FAF7F2] rounded-xl p-3.5 flex flex-wrap items-center justify-between text-xs text-[#8A7973] gap-2 border border-[#EFE8DF]">
                         <div>
-                          <span className="font-bold text-[#281C19]">Delivery Address: </span>
+                          <span className="font-bold text-[#281C19]">
+                            Delivery Address:{" "}
+                          </span>
                           {order.shippingAddress ? (
                             <span>
-                              {order.shippingAddress.addressLine}, {order.shippingAddress.city} - {order.shippingAddress.pincode}
+                              {order.shippingAddress.addressLine},{" "}
+                              {order.shippingAddress.city} -{" "}
+                              {order.shippingAddress.pincode}
                             </span>
                           ) : (
                             <span>On File</span>
                           )}
                         </div>
                         <div>
-                          <span className="font-bold text-[#281C19]">Payment: </span>
-                          <span className="font-bold text-[#8C6239]">{order.paymentMethod || "COD"}</span>
+                          <span className="font-bold text-[#281C19]">
+                            Payment:{" "}
+                          </span>
+                          <span className="font-bold text-[#8C6239]">
+                            {order.paymentMethod || "COD"}
+                          </span>
                         </div>
                       </div>
                     </div>
@@ -531,8 +569,12 @@ export default function ProfilePage() {
               <div className="bg-[#FAF7F2]/40 border border-dashed border-[#EFE8DF] rounded-[24px] p-12 text-center space-y-4">
                 <FiShoppingBag className="w-10 h-10 text-[#8A7973]/50 mx-auto" />
                 <div className="space-y-1">
-                  <p className="text-sm font-bold text-[#281C19]">No Order History Found</p>
-                  <p className="text-xs text-[#8A7973]">You haven't placed any furniture orders with Nestro yet.</p>
+                  <p className="text-sm font-bold text-[#281C19]">
+                    No Order History Found
+                  </p>
+                  <p className="text-xs text-[#8A7973]">
+                    You have not placed any furniture orders with Nestro yet.
+                  </p>
                 </div>
                 <Link
                   href="/store"
@@ -544,15 +586,19 @@ export default function ProfilePage() {
             )}
           </div>
         )}
-        
+
         {/* TAB 2: MY ADDRESSES */}
         {activeTab === "addresses" && (
           <div className="space-y-6">
             {/* Addresses Header */}
             <div className="flex items-center justify-between border-b border-[#EFE8DF] pb-4">
               <div className="space-y-0.5">
-                <h3 className="text-base font-bold text-[#281C19]">Shipping Addresses</h3>
-                <p className="text-xs text-[#8A7973]">Manage your saved delivery locations.</p>
+                <h3 className="text-base font-bold text-[#281C19]">
+                  Shipping Addresses
+                </h3>
+                <p className="text-xs text-[#8A7973]">
+                  Manage your saved delivery locations.
+                </p>
               </div>
               <button
                 onClick={() => setShowAddressModal(true)}
@@ -577,20 +623,26 @@ export default function ProfilePage() {
                   >
                     <div className="space-y-2">
                       <div className="flex items-start justify-between gap-12">
-                        <span className="font-bold text-xs text-[#281C19] block">{addr.fullName}</span>
+                        <span className="font-bold text-xs text-[#281C19] block">
+                          {addr.fullName}
+                        </span>
                         {addr.isDefault && (
                           <span className="text-[8px] font-black text-[#8C6239] bg-[#FAF7F2] px-2 py-0.5 rounded-full border border-[#8C6239]/20 uppercase tracking-widest flex-shrink-0">
                             Default
                           </span>
                         )}
                       </div>
-                      
+
                       <p className="text-[11px] text-[#8A7973] leading-relaxed">
-                        {addr.addressLine}, {addr.city}, {addr.state} - <span className="font-bold text-[#281C19]">{addr.pincode}</span>
+                        {addr.addressLine}, {addr.city}, {addr.state} -{" "}
+                        <span className="font-bold text-[#281C19]">
+                          {addr.pincode}
+                        </span>
                       </p>
 
                       <div className="text-[10px] font-bold text-[#281C19] flex items-center gap-1.5">
-                        <FiPhone className="w-3.5 h-3.5 text-[#8C6239]" /> {addr.mobile}
+                        <FiPhone className="w-3.5 h-3.5 text-[#8C6239]" />{" "}
+                        {addr.mobile}
                       </div>
                     </div>
 
@@ -608,7 +660,7 @@ export default function ProfilePage() {
                           Set as default
                         </button>
                       )}
-                      
+
                       <button
                         onClick={() => handleDeleteAddress(addr._id)}
                         className="text-red-500 hover:text-red-700 transition-colors p-1.5 hover:bg-red-50 rounded-lg cursor-pointer"
@@ -617,15 +669,18 @@ export default function ProfilePage() {
                         <FiTrash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
-
                   </div>
                 ))
               ) : (
                 <div className="col-span-2 bg-[#FAF7F2]/40 border border-dashed border-[#EFE8DF] rounded-[24px] p-10 text-center space-y-3">
                   <FiMapPin className="w-8 h-8 text-[#8A7973]/50 mx-auto" />
                   <div className="space-y-0.5">
-                    <p className="text-xs font-bold text-[#281C19]">No shipping addresses</p>
-                    <p className="text-[11px] text-[#8A7973]">Add a delivery address to start checking out purchases.</p>
+                    <p className="text-xs font-bold text-[#281C19]">
+                      No shipping addresses
+                    </p>
+                    <p className="text-[11px] text-[#8A7973]">
+                      Add a delivery address to start checking out purchases.
+                    </p>
                   </div>
                   <button
                     onClick={() => setShowAddressModal(true)}
@@ -636,7 +691,6 @@ export default function ProfilePage() {
                 </div>
               )}
             </div>
-
           </div>
         )}
 
@@ -645,16 +699,21 @@ export default function ProfilePage() {
           <div className="space-y-6">
             {/* Edit Profile Header */}
             <div className="space-y-0.5 border-b border-[#EFE8DF] pb-4">
-              <h3 className="text-base font-bold text-[#281C19]">Profile Configuration</h3>
-              <p className="text-xs text-[#8A7973]">Update your account names and contact details.</p>
+              <h3 className="text-base font-bold text-[#281C19]">
+                Profile Configuration
+              </h3>
+              <p className="text-xs text-[#8A7973]">
+                Update your account names and contact details.
+              </p>
             </div>
 
             {/* Profile Form */}
             <form onSubmit={handleProfileSubmit} className="space-y-5 max-w-md">
-              
               {/* Full Name field */}
               <div className="space-y-1.5">
-                <label className="text-[10px] font-extrabold text-[#281C19] uppercase tracking-wider block">Full Name</label>
+                <label className="text-[10px] font-extrabold text-[#281C19] uppercase tracking-wider block">
+                  Full Name
+                </label>
                 <div className="relative">
                   <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8A7973]">
                     <FiUser className="w-4 h-4" />
@@ -664,7 +723,9 @@ export default function ProfilePage() {
                     required
                     name="name"
                     value={profileForm.name}
-                    onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
+                    onChange={(e) =>
+                      setProfileForm({ ...profileForm, name: e.target.value })
+                    }
                     placeholder="User Name"
                     disabled={submitting}
                     className="w-full bg-[#FAF7F2]/50 border border-[#EFE8DF] rounded-xl pl-11 pr-4 py-3 text-xs text-[#281C19] focus:outline-none focus:border-[#8C6239] focus:bg-white transition-all disabled:opacity-50"
@@ -674,7 +735,9 @@ export default function ProfilePage() {
 
               {/* Mobile Number field */}
               <div className="space-y-1.5">
-                <label className="text-[10px] font-extrabold text-[#281C19] uppercase tracking-wider block">Mobile Number</label>
+                <label className="text-[10px] font-extrabold text-[#281C19] uppercase tracking-wider block">
+                  Mobile Number
+                </label>
                 <div className="relative">
                   <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[#8A7973]">
                     <FiPhone className="w-4 h-4" />
@@ -683,7 +746,9 @@ export default function ProfilePage() {
                     type="text"
                     name="mobile"
                     value={profileForm.mobile}
-                    onChange={(e) => setProfileForm({ ...profileForm, mobile: e.target.value })}
+                    onChange={(e) =>
+                      setProfileForm({ ...profileForm, mobile: e.target.value })
+                    }
                     placeholder="Enter phone number"
                     disabled={submitting}
                     className="w-full bg-[#FAF7F2]/50 border border-[#EFE8DF] rounded-xl pl-11 pr-4 py-3 text-xs text-[#281C19] focus:outline-none focus:border-[#8C6239] focus:bg-white transition-all disabled:opacity-50"
@@ -699,18 +764,15 @@ export default function ProfilePage() {
               >
                 {submitting ? "Saving changes..." : "Save changes"}
               </button>
-
             </form>
           </div>
         )}
-
       </div>
 
       {/* ADDRESS DETAILS MODAL DIALOG */}
       {showAddressModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
           <div className="bg-white border border-[#EFE8DF] rounded-[32px] max-w-lg w-full p-6 md:p-8 space-y-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
-            
             <button
               onClick={() => setShowAddressModal(false)}
               className="absolute top-6 right-6 text-[#8A7973] hover:text-[#281C19] transition-colors p-1"
@@ -719,15 +781,20 @@ export default function ProfilePage() {
             </button>
 
             <div className="space-y-0.5">
-              <h3 className="text-lg font-bold text-[#281C19]">Add Shipping Address</h3>
-              <p className="text-xs text-[#8A7973]">Enter details for order deliveries.</p>
+              <h3 className="text-lg font-bold text-[#281C19]">
+                Add Shipping Address
+              </h3>
+              <p className="text-xs text-[#8A7973]">
+                Enter details for order deliveries.
+              </p>
             </div>
 
             <form onSubmit={handleAddressSubmit} className="space-y-4">
-              
               {/* Full Name */}
               <div className="space-y-1.5">
-                <label className="text-[10px] font-extrabold text-[#281C19] uppercase tracking-wider block">Receiver Full Name</label>
+                <label className="text-[10px] font-extrabold text-[#281C19] uppercase tracking-wider block">
+                  Receiver Full Name
+                </label>
                 <input
                   type="text"
                   required
@@ -742,7 +809,9 @@ export default function ProfilePage() {
               {/* Mobile and pincode grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-extrabold text-[#281C19] uppercase tracking-wider block">Contact Mobile Number</label>
+                  <label className="text-[10px] font-extrabold text-[#281C19] uppercase tracking-wider block">
+                    Contact Mobile Number
+                  </label>
                   <input
                     type="text"
                     required
@@ -754,7 +823,9 @@ export default function ProfilePage() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-extrabold text-[#281C19] uppercase tracking-wider block">Pincode</label>
+                  <label className="text-[10px] font-extrabold text-[#281C19] uppercase tracking-wider block">
+                    Pincode
+                  </label>
                   <input
                     type="text"
                     required
@@ -769,7 +840,9 @@ export default function ProfilePage() {
 
               {/* Street Address */}
               <div className="space-y-1.5">
-                <label className="text-[10px] font-extrabold text-[#281C19] uppercase tracking-wider block">Address Line</label>
+                <label className="text-[10px] font-extrabold text-[#281C19] uppercase tracking-wider block">
+                  Address Line
+                </label>
                 <input
                   type="text"
                   required
@@ -784,7 +857,9 @@ export default function ProfilePage() {
               {/* City and State */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-extrabold text-[#281C19] uppercase tracking-wider block">City</label>
+                  <label className="text-[10px] font-extrabold text-[#281C19] uppercase tracking-wider block">
+                    City
+                  </label>
                   <input
                     type="text"
                     required
@@ -796,7 +871,9 @@ export default function ProfilePage() {
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[10px] font-extrabold text-[#281C19] uppercase tracking-wider block">State</label>
+                  <label className="text-[10px] font-extrabold text-[#281C19] uppercase tracking-wider block">
+                    State
+                  </label>
                   <input
                     type="text"
                     required
@@ -816,7 +893,12 @@ export default function ProfilePage() {
                     type="checkbox"
                     name="isDefault"
                     checked={addressForm.isDefault}
-                    onChange={(e) => setAddressForm({ ...addressForm, isDefault: e.target.checked })}
+                    onChange={(e) =>
+                      setAddressForm({
+                        ...addressForm,
+                        isDefault: e.target.checked,
+                      })
+                    }
                     className="w-4 h-4 accent-[#8C6239] rounded cursor-pointer"
                   />
                   Mark as my primary/default delivery address
@@ -840,12 +922,10 @@ export default function ProfilePage() {
                   {submitting ? "Saving..." : "Save Address"}
                 </button>
               </div>
-
             </form>
           </div>
         </div>
       )}
-
     </div>
   );
 }

@@ -85,6 +85,12 @@ const login = async (req, res) => {
 
         if (decryptedPassword != password) return sendConflict(res, "Invalid credentials");
         if (!user.isVerified) return sendConflict(res, "Please verify your email before logging in");
+        if (user.status === false) {
+            return res.status(403).json({ success: false, message: "Account is inactive. Contact support." });
+        }
+        if (user.role === "admin" || user.role === "superAdmin") {
+            return res.status(403).json({ success: false, message: "Admin accounts must use the admin portal." });
+        }
         //Send Cookie
         const token = generateToken(user._id);
         res.cookie('jwt', token, {
@@ -104,7 +110,19 @@ const getProfile = async (req, res) => {
     try {
         const user = req.user;
         if (!user) return sendConflict(res, "User not found");
-        return res.status(200).json({ success: true, message: "User profile fetched successfully",  user: user });
+        // Try to include order history if Orders model exists
+        let orders = [];
+        try {
+            const mod = await import("../models/order.models.js");
+            const OrderModel = mod.default;
+            if (OrderModel) {
+                orders = await OrderModel.find({ userId: user._id }).sort({ createdAt: -1 });
+            }
+        } catch (err) {
+            orders = [];
+        }
+
+        return res.status(200).json({ success: true, message: "User profile fetched successfully", user: user, orders });
     }
     catch (error) {
         console.log(error, "error")
@@ -245,11 +263,129 @@ export {
     verifyOtp,
     resendOtp,
     login,
+    adminLogin,
+    logout,
+    adminLogout,
     getProfile,
     updateProfile,
     addAddress,
     deleteAddress,
     setDefaultAddress,
     deleteAccount,
-    sendOrderEmail
+    sendOrderEmail,
+    // Admin controllers
+    getAllUsers,
+    getUserById,
+    updateUserById,
+    deleteUserById
 }
+
+// Admin controllers
+const getAllUsers = async (req, res) => {
+    try {
+        const users = await UserModel.find().select("-password -otp -otpExpire -__v").sort({ createdAt: -1 });
+        return sendSuccess(res, "Users fetched successfully", { users });
+    } catch (error) {
+        console.log(error, "error");
+        sendServerError(res, "Internal Server Error");
+    }
+}
+
+const getUserById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const user = await UserModel.findById(id).select("-password -otp -otpExpire -__v");
+        if (!user) return sendNotFound(res, "User not found");
+
+        // Try to include order history if Orders model exists
+        let orders = [];
+        try {
+            const mod = await import("../models/order.models.js");
+            const OrderModel = mod.default;
+            if (OrderModel) {
+                orders = await OrderModel.find({ userId: id }).sort({ createdAt: -1 });
+            }
+        } catch (err) {
+            // Orders model not present or error fetching orders — ignore and continue
+            orders = [];
+        }
+
+        return sendSuccess(res, "User fetched successfully", { user, orders });
+    } catch (error) {
+        console.log(error, "error");
+        sendServerError(res, "Internal Server Error");
+    }
+}
+
+const updateUserById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, email, mobile, role, status } = req.body;
+        const user = await UserModel.findById(id);
+        if (!user) return sendNotFound(res, "User not found");
+        if (name !== undefined) user.name = name;
+        if (email !== undefined) user.email = email;
+        if (mobile !== undefined) user.mobile = mobile;
+        if (role !== undefined) user.role = role;
+        if (status !== undefined) user.status = status;
+        await user.save();
+        const updatedUser = await UserModel.findById(id).select("-password -otp -otpExpire -__v");
+        return sendSuccess(res, "User updated successfully", { user: updatedUser });
+    } catch (error) {
+        console.log(error, "error");
+        sendServerError(res, "Internal Server Error");
+    }
+}
+
+const deleteUserById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const user = await UserModel.findById(id);
+        if (!user) return sendNotFound(res, "User not found");
+        await UserModel.findByIdAndDelete(id);
+        return sendSuccess(res, "User deleted successfully");
+    } catch (error) {
+        console.log(error, "error");
+        sendServerError(res, "Internal Server Error");
+    }
+}
+
+const adminLogin = async (req, res) => {
+    try {
+        const { email, password } = req.body;
+        const user = await UserModel.findOne({ email });
+        if (!user) return sendConflict(res, "User not found");
+        const decryptedPassword = cryptr.decrypt(user.password);
+
+        if (decryptedPassword != password) return sendConflict(res, "Invalid credentials");
+        if (!user.isVerified) return sendConflict(res, "Please verify your email before logging in");
+        if (user.status === false) {
+            return res.status(403).json({ success: false, message: "Account is inactive. Contact support." });
+        }
+        if (user.role !== "admin" && user.role !== "superAdmin") {
+            return res.status(403).json({ success: false, message: "Access denied. Admin privileges required." });
+        }
+
+        const token = generateToken(user._id);
+        res.cookie("admin_jwt", token, {
+            maxAge: 900000,
+            httpOnly: true,
+            secure: false,
+            sameSite: "lax",
+        });
+        return sendSuccess(res, "Admin login successful", { user });
+    } catch (error) {
+        console.log(error, "error");
+        sendServerError(res, "Internal Server Error");
+    }
+}
+
+const logout = (req, res) => {
+    res.clearCookie("jwt");
+    return sendSuccess(res, "Logged out successfully");
+};
+
+const adminLogout = (req, res) => {
+    res.clearCookie("admin_jwt");
+    return sendSuccess(res, "Admin logged out successfully");
+};

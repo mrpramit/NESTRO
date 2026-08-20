@@ -3,13 +3,27 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { fetchProducts } from "@/utils/api";
+import { cloudinaryAssets } from "@/utils/cloudinaryAssets";
 
 // Custom vector graphics matching the mockup illustrations
 const JustLandedIllustration = ({ type = "" }) => {
   if (type === "wardrobe") {
     return (
-      <svg className="w-12 h-12 text-[#8C6239]/80" fill="currentColor" viewBox="0 0 60 70">
-        <rect x="10" y="5" width="40" height="60" rx="4" fill="none" stroke="#8C6239" strokeWidth="4" />
+      <svg
+        className="w-12 h-12 text-[#8C6239]/80"
+        fill="currentColor"
+        viewBox="0 0 60 70"
+      >
+        <rect
+          x="10"
+          y="5"
+          width="40"
+          height="60"
+          rx="4"
+          fill="none"
+          stroke="#8C6239"
+          strokeWidth="4"
+        />
         <line x1="30" y1="5" x2="30" y2="65" stroke="#8C6239" strokeWidth="3" />
         <circle cx="25" cy="35" r="2.5" fill="#8C6239" />
         <circle cx="35" cy="35" r="2.5" fill="#8C6239" />
@@ -18,13 +32,56 @@ const JustLandedIllustration = ({ type = "" }) => {
   }
   if (type === "tv-console") {
     return (
-      <svg className="w-14 h-8 text-[#8C6239]/80" fill="currentColor" viewBox="0 0 80 40">
-        <rect x="5" y="10" width="70" height="22" rx="3" fill="none" stroke="#8C6239" strokeWidth="4" />
-        <line x1="28" y1="10" x2="28" y2="32" stroke="#8C6239" strokeWidth="3" />
-        <line x1="52" y1="10" x2="52" y2="32" stroke="#8C6239" strokeWidth="3" />
+      <svg
+        className="w-14 h-8 text-[#8C6239]/80"
+        fill="currentColor"
+        viewBox="0 0 80 40"
+      >
+        <rect
+          x="5"
+          y="10"
+          width="70"
+          height="22"
+          rx="3"
+          fill="none"
+          stroke="#8C6239"
+          strokeWidth="4"
+        />
+        <line
+          x1="28"
+          y1="10"
+          x2="28"
+          y2="32"
+          stroke="#8C6239"
+          strokeWidth="3"
+        />
+        <line
+          x1="52"
+          y1="10"
+          x2="52"
+          y2="32"
+          stroke="#8C6239"
+          strokeWidth="3"
+        />
         <circle cx="62" cy="21" r="2" fill="#8C6239" />
-        <line x1="15" y1="32" x2="10" y2="38" stroke="#8C6239" strokeWidth="4" strokeLinecap="round" />
-        <line x1="65" y1="32" x2="70" y2="38" stroke="#8C6239" strokeWidth="4" strokeLinecap="round" />
+        <line
+          x1="15"
+          y1="32"
+          x2="10"
+          y2="38"
+          stroke="#8C6239"
+          strokeWidth="4"
+          strokeLinecap="round"
+        />
+        <line
+          x1="65"
+          y1="32"
+          x2="70"
+          y2="38"
+          stroke="#8C6239"
+          strokeWidth="4"
+          strokeLinecap="round"
+        />
       </svg>
     );
   }
@@ -44,7 +101,7 @@ export default function JustLanded() {
       salePrice: 118000,
       rating: 5,
       slug: "linen-wardrobe",
-      illustration: "wardrobe"
+      illustration: "wardrobe",
     },
     {
       _id: "mock-na-2",
@@ -53,8 +110,8 @@ export default function JustLanded() {
       salePrice: 67000,
       rating: 4,
       slug: "walnut-tv-console",
-      illustration: "tv-console"
-    }
+      illustration: "tv-console",
+    },
   ];
 
   useEffect(() => {
@@ -78,7 +135,6 @@ export default function JustLanded() {
 
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10">
-      
       {/* Header Row */}
       <div className="flex items-end justify-between mb-6">
         <div className="space-y-0.5">
@@ -99,7 +155,6 @@ export default function JustLanded() {
 
       {/* Grid Layout with fixed height on desktop for perfect alignments */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5 lg:h-[420px]">
-        
         {/* Left Column - Large Featured Product Card */}
         <div className="lg:col-span-2 bg-[#281C19] border border-transparent hover:border-[#8C6239]/50 rounded-[20px] p-6 relative flex flex-col justify-between overflow-hidden shadow-sm hover:shadow-xl hover:shadow-[#8C6239]/10 transition-all duration-300 group h-full min-h-[300px] lg:min-h-0">
           {/* Ambient Glow */}
@@ -134,7 +189,7 @@ export default function JustLanded() {
           {/* Product Image on the right */}
           <div className="absolute bottom-3 right-3 w-40 h-28 sm:w-48 sm:h-36 lg:w-56 lg:h-44 flex items-center justify-center pointer-events-none z-10">
             <img
-              src="/dining-set.png"
+              src={cloudinaryAssets["dining-set.png"]}
               alt="Scandinavian Dining Set"
               className="max-w-full max-h-full object-contain drop-shadow-[0_12px_30px_rgba(0,0,0,0.55)] transform group-hover:scale-108 group-hover:-rotate-2 transition-transform duration-500 ease-out"
             />
@@ -161,7 +216,12 @@ export default function JustLanded() {
                     />
                   ) : (
                     <div className="p-4 transform group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500 ease-out">
-                      <JustLandedIllustration type={product.illustration || (idx === 0 ? "wardrobe" : "tv-console")} />
+                      <JustLandedIllustration
+                        type={
+                          product.illustration ||
+                          (idx === 0 ? "wardrobe" : "tv-console")
+                        }
+                      />
                     </div>
                   )}
                 </div>
@@ -184,7 +244,9 @@ export default function JustLanded() {
                         <span
                           key={starIdx}
                           className={`text-[10px] ${
-                            starIdx < ratingStars ? "text-[#8C6239]" : "text-gray-200"
+                            starIdx < ratingStars
+                              ? "text-[#8C6239]"
+                              : "text-gray-200"
                           }`}
                         >
                           ★
@@ -204,7 +266,6 @@ export default function JustLanded() {
 
         {/* Right Column - Stacked Promo Banners */}
         <div className="lg:col-span-1 grid grid-rows-2 gap-4 h-full">
-          
           {/* Banner A - Promo Offer */}
           <div className="bg-[#FAF7F2] border border-[#EFE8DF] rounded-[18px] p-4.5 flex flex-col justify-between h-full shadow-sm hover:shadow-md hover:border-[#8C6239]/30 hover:-translate-y-0.5 transition-all duration-300 group/promo">
             <div className="space-y-0.5">
@@ -239,17 +300,25 @@ export default function JustLanded() {
                 White glove service. Assembly included.
               </p>
             </div>
-            
+
             {/* Delivery truck icon */}
             <div className="mt-2 flex transform group-hover/promo:translate-x-2 transition-transform duration-500 ease-out">
-              <svg className="w-4.5 h-4.5 text-[#8C6239]" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.75a1.125 1.125 0 01-1.125-1.125V9.75c0-.621.504-1.125 1.125-1.125h9.75c.621 0 1.125.504 1.125 1.125v5.625c0 .621-.504 1.125-1.125 1.125H8.25zM19.5 10.5h.375c.621 0 1.125.504 1.125 1.125v3.375c0 .621-.504 1.125-1.125 1.125h-.375M16.5 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h3.75a1.125 1.125 0 001.125-1.125V13.5h-4.875v5.25z" />
+              <svg
+                className="w-4.5 h-4.5 text-[#8C6239]"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.75a1.125 1.125 0 01-1.125-1.125V9.75c0-.621.504-1.125 1.125-1.125h9.75c.621 0 1.125.504 1.125 1.125v5.625c0 .621-.504 1.125-1.125 1.125H8.25zM19.5 10.5h.375c.621 0 1.125.504 1.125 1.125v3.375c0 .621-.504 1.125-1.125 1.125h-.375M16.5 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h3.75a1.125 1.125 0 001.125-1.125V13.5h-4.875v5.25z"
+                />
               </svg>
             </div>
           </div>
-
         </div>
-
       </div>
     </section>
   );
