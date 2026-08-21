@@ -15,7 +15,10 @@ server.use(express.json());
 //Cookie Parser
 server.use(cookieParser());
 //Cors
-server.use(cors({ origin: "http://localhost:3000", credentials: true }));
+server.use(cors({
+    origin: ["http://localhost:3000", "https://nestro-khaki.vercel.app"],
+    credentials: true
+}));
 //Router use
 server.use("/api/category", categoryRouter);
 server.use("/api/room-type", roomRouter);
