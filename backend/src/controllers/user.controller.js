@@ -96,8 +96,8 @@ const login = async (req, res) => {
         res.cookie('jwt', token, {
             maxAge: 900000, // Expires after 15 minutes (in milliseconds)
             httpOnly: true, // Prevents client-side JS from accessing the cookie
-            secure: false, // Sent over HTTPS only in production
-            sameSite: 'lax'  // Protects against CSRF attacks
+            secure: process.env.NODE_ENV === "production",
+            sameSite: process.env.NODE_ENV === "production" ? "none" : "lax"
         });
         return sendSuccess(res, "Login successful", { user });
     } catch (error) {
@@ -370,8 +370,8 @@ const adminLogin = async (req, res) => {
         res.cookie("admin_jwt", token, {
             maxAge: 900000,
             httpOnly: true,
-            secure: false,
-            sameSite: "lax",
+            secure: process.env.NODE_ENV === "production",
+            sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
         });
         return sendSuccess(res, "Admin login successful", { user });
     } catch (error) {
