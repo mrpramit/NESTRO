@@ -1,10 +1,12 @@
 import express from "express";
 const router = express.Router();
-import { register, verifyOtp, resendOtp, login, adminLogin, logout, adminLogout, getProfile, updateProfile, addAddress, deleteAddress, setDefaultAddress, deleteAccount, sendOrderEmail, getAllUsers, getUserById, updateUserById, deleteUserById } from "../controllers/user.controller.js";
+import { register, verifyOtp, resendOtp, forgotPassword, resetPassword, login, adminLogin, logout, adminLogout, getProfile, updateProfile, addAddress, deleteAddress, setDefaultAddress, deleteAccount, sendOrderEmail, getAllUsers, getUserById, updateUserById, deleteUserById } from "../controllers/user.controller.js";
 import { protect, protectAdmin, authorize } from "../middleware/auth.js";
 router.post("/register", register);
 router.post("/verify-otp", verifyOtp);
 router.post("/resend-otp", resendOtp);
+router.post("/forgot-password", forgotPassword);
+router.post("/reset-password", resetPassword);
 router.post("/login", login);
 router.post("/admin-login", adminLogin);
 router.post("/logout", logout);

@@ -2,30 +2,64 @@ import UserModel from "../models/user.models.js";
 import { sendBadRequest, sendConflict, sendCreated, sendNotFound, sendServerError, sendSuccess } from "../utils/response.js"
 import sendOtpMail from "../utils/sendOtpMail.js";
 import Cryptr from "cryptr";
+import crypto from "crypto";
 const cryptr = new Cryptr(process.env.API_SECRET);
 import generateToken from "../utils/generateToken.js";
+import sendPasswordResetMail from "../utils/sendPasswordResetMail.js";
 
 const register = async (req, res) => {
     try {
         const { name, email, password } = req.body;
+        const normalizedEmail = email?.trim().toLowerCase();
 
-        const user = await UserModel.findOne({ email });
-        console.log(user)
-        if (user) return sendConflict(res, "User already exists");
+        if (!name?.trim() || !normalizedEmail || !password) {
+            return sendBadRequest(res, "Name, email, and password are required");
+        }
+
+        const user = await UserModel.findOne({ email: normalizedEmail });
+        if (user?.isVerified) return sendConflict(res, "User already exists");
+
         const otp = Math.floor(100000 + Math.random() * 900000);
         const otpExpire = Date.now() + 3 * 60 * 1000;    //3 minutes
-        const passwordHash = cryptr.encrypt(password);
-        await UserModel.create({ name, email, password: passwordHash, otp, otpExpire });
-        const mailResponse = await sendOtpMail(email, otp);
-        console.log(mailResponse, "mailResponse")
-        if (mailResponse.includes("failed")) {
+        let registeredUser = user;
+        let isNewUser = false;
+
+        if (registeredUser) {
+            // An earlier OTP attempt was interrupted. Refresh it instead of trapping
+            // the customer behind a duplicate-email error.
+            registeredUser.otp = otp;
+            registeredUser.otpExpire = otpExpire;
+            await registeredUser.save();
+        } else {
+            const passwordHash = cryptr.encrypt(password);
+            registeredUser = await UserModel.create({
+                name: name.trim(),
+                email: normalizedEmail,
+                password: passwordHash,
+                otp,
+                otpExpire,
+            });
+            isNewUser = true;
+        }
+
+        const mailResponse = await sendOtpMail(normalizedEmail, otp);
+        const mailSent = typeof mailResponse === "string" && !mailResponse.toLowerCase().includes("failed");
+
+        if (!mailSent) {
+            // Do not leave a newly registered user unable to retry after a mail outage.
+            if (isNewUser) {
+                await UserModel.deleteOne({ _id: registeredUser._id });
+            }
             return sendServerError(res, "OTP email could not be sent.");
-}
+        }
+
         return res.status(201).json(
             {
-                user: email,
+                user: normalizedEmail,
                 success: true,
-                message: "User registered successfully. Please check your email for OTP verification."
+                message: user
+                    ? "A fresh OTP has been sent. Please check your email for verification."
+                    : "User registered successfully. Please check your email for OTP verification."
             }
         );
 
@@ -59,20 +93,79 @@ const verifyOtp = async (req, res) => {
 
 const resendOtp = async (req, res) => {
     try {
-        const { email } = req.body;
-        const user = await UserModel.findOne({ email });
+        const normalizedEmail = req.body.email?.trim().toLowerCase();
+        const user = await UserModel.findOne({ email: normalizedEmail });
         if (!user) return sendConflict(res, "User not found");
         const otp = Math.floor(100000 + Math.random() * 900000);
         const otpExpire = Date.now() + 3 * 60 * 1000;
-        const mailReponse = await sendOtpMail(email, otp);
-        // console.log(mailReponse, "mailResponse")
         user.otp = otp;
         user.otpExpire = otpExpire;
         await user.save();
+        const mailResponse = await sendOtpMail(normalizedEmail, otp);
+        const mailSent = typeof mailResponse === "string" && !mailResponse.toLowerCase().includes("failed");
+        if (!mailSent) return sendServerError(res, "OTP email could not be sent.");
         return sendSuccess(res, "OTP resent successfully. Please check your email.");
     } catch (error) {
         console.log(error, "error")
         sendServerError(res, "Internal Server Error")
+    }
+}
+
+const forgotPassword = async (req, res) => {
+    try {
+        const normalizedEmail = req.body.email?.trim().toLowerCase();
+        if (!normalizedEmail) return sendBadRequest(res, "Email is required");
+
+        const user = await UserModel.findOne({ email: normalizedEmail });
+        // Keep this response identical for unknown email addresses.
+        if (!user) return sendSuccess(res, "If an account exists for this email, a reset link has been sent.");
+
+        const resetToken = crypto.randomBytes(32).toString("hex");
+        user.passwordResetToken = crypto.createHash("sha256").update(resetToken).digest("hex");
+        user.passwordResetExpires = Date.now() + 15 * 60 * 1000;
+        await user.save();
+
+        const clientUrl = (process.env.FRONTEND_URL || "https://nestro-khaki.vercel.app").replace(/\/$/, "");
+        const resetUrl = `${clientUrl}/reset-password?token=${resetToken}`;
+        const mailResponse = await sendPasswordResetMail(normalizedEmail, resetUrl);
+        const mailSent = typeof mailResponse === "string" && !mailResponse.toLowerCase().includes("failed");
+
+        if (!mailSent) {
+            user.passwordResetToken = undefined;
+            user.passwordResetExpires = undefined;
+            await user.save();
+            return sendServerError(res, "Password reset email could not be sent.");
+        }
+
+        return sendSuccess(res, "If an account exists for this email, a reset link has been sent.");
+    } catch (error) {
+        console.log(error, "error");
+        sendServerError(res, "Internal Server Error");
+    }
+}
+
+const resetPassword = async (req, res) => {
+    try {
+        const { token, password } = req.body;
+        if (!token || !password) return sendBadRequest(res, "Reset token and new password are required");
+        if (password.length < 6) return sendBadRequest(res, "Password must be at least 6 characters");
+
+        const passwordResetToken = crypto.createHash("sha256").update(token).digest("hex");
+        const user = await UserModel.findOne({
+            passwordResetToken,
+            passwordResetExpires: { $gt: Date.now() },
+        });
+
+        if (!user) return sendBadRequest(res, "This password reset link is invalid or has expired.");
+
+        user.password = cryptr.encrypt(password);
+        user.passwordResetToken = undefined;
+        user.passwordResetExpires = undefined;
+        await user.save();
+        return sendSuccess(res, "Password reset successfully. You can now sign in.");
+    } catch (error) {
+        console.log(error, "error");
+        sendServerError(res, "Internal Server Error");
     }
 }
 
@@ -262,6 +355,8 @@ export {
     register,
     verifyOtp,
     resendOtp,
+    forgotPassword,
+    resetPassword,
     login,
     adminLogin,
     logout,

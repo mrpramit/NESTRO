@@ -357,6 +357,24 @@ export const resendUserOtp = async (otpData) => {
     }
 };
 
+export const requestPasswordReset = async (email) => {
+    try {
+        const response = await client.post("user/forgot-password", { email });
+        return { success: response.data.success, message: response.data.message };
+    } catch (error) {
+        return { success: false, message: error.response?.data?.message || "Unable to request a password reset" };
+    }
+};
+
+export const resetUserPassword = async (payload) => {
+    try {
+        const response = await client.post("user/reset-password", payload);
+        return { success: response.data.success, message: response.data.message };
+    } catch (error) {
+        return { success: false, message: error.response?.data?.message || "Unable to reset password" };
+    }
+};
+
 export const loginUser = async (loginData) => {
     try {
         const response = await client.post("user/login", loginData);

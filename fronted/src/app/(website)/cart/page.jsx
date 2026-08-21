@@ -42,20 +42,20 @@ export default function CartPage() {
   };
 
   return (
-    <main className="bg-[#FAF7F2] min-h-screen py-10 md:py-16">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <main className="bg-[#FAF7F2] min-h-screen overflow-x-hidden py-6 sm:py-10 md:py-16">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
         
         {/* Header */}
-        <div className="border-b border-[#EFE8DF] pb-5 mb-10 flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-extrabold text-[#281C19] tracking-tight">Shopping Bag</h1>
+        <div className="border-b border-[#EFE8DF] pb-5 mb-6 sm:mb-10 flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-[#281C19] tracking-tight">Shopping Bag</h1>
             <p className="text-xs text-[#8A7973] mt-1 font-medium tracking-wide uppercase">
               {cartItems.length === 0 ? "Your bag is empty" : `${cartItems.length} unique selections`}
             </p>
           </div>
           <Link
             href="/store"
-            className="text-xs font-bold text-[#8C6239] hover:text-[#724E2B] transition-colors flex items-center gap-1.5 uppercase tracking-wider"
+            className="shrink-0 text-[10px] sm:text-xs font-bold text-[#8C6239] hover:text-[#724E2B] transition-colors flex items-center gap-1 uppercase tracking-wider"
           >
             <FiArrowLeft /> Back to Store
           </Link>
@@ -87,10 +87,10 @@ export default function CartPage() {
               {cartItems.map((item, index) => (
                 <div
                   key={`${item.id}-${item.color}-${item.material}`}
-                  className="bg-white border border-[#EFE8DF] rounded-2xl p-4 md:p-5 flex gap-4 md:gap-6 shadow-sm hover:shadow-md transition-shadow"
+                  className="bg-white border border-[#EFE8DF] rounded-2xl p-3 sm:p-4 md:p-5 flex gap-3 sm:gap-4 md:gap-6 shadow-sm hover:shadow-md transition-shadow"
                 >
                   {/* Thumbnail Image */}
-                  <div className="w-24 h-24 md:w-28 md:h-28 bg-[#FAF7F2] border border-[#EFE8DF] rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center p-2">
+                  <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 bg-[#FAF7F2] border border-[#EFE8DF] rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center p-2">
                     {item.thumbnail && item.thumbnail.startsWith("http") ? (
                       <img src={item.thumbnail} alt={item.name} className="max-h-full max-w-full object-contain" />
                     ) : (
@@ -102,9 +102,9 @@ export default function CartPage() {
 
                   {/* Item Details */}
                   <div className="flex-1 flex flex-col justify-between min-w-0 py-0.5">
-                    <div className="flex justify-between items-start gap-4">
-                      <div>
-                        <h3 className="text-sm md:text-base font-bold text-[#281C19] truncate pr-4" title={item.name}>
+                    <div className="flex justify-between items-start gap-2 sm:gap-4">
+                      <div className="min-w-0 flex-1">
+                        <h3 className="text-xs sm:text-sm md:text-base font-bold text-[#281C19] truncate" title={item.name}>
                           {item.name}
                         </h3>
                         <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1 text-[10px] md:text-xs text-[#8A7973] font-medium">
@@ -112,7 +112,7 @@ export default function CartPage() {
                           <span>Color: <strong className="text-[#3E2A24]">{item.color}</strong></span>
                         </div>
                       </div>
-                      <span className="text-sm md:text-base font-extrabold text-[#281C19] whitespace-nowrap">
+                      <span className="shrink-0 text-xs sm:text-sm md:text-base font-extrabold text-[#281C19] whitespace-nowrap">
                         ₹{(item.price * item.quantity).toLocaleString("en-IN")}
                       </span>
                     </div>
@@ -163,7 +163,7 @@ export default function CartPage() {
             </div>
 
             {/* Right Summary Column */}
-            <div className="lg:col-span-4 bg-white border border-[#EFE8DF] rounded-3xl p-6 md:p-8 shadow-sm space-y-6 sticky top-24">
+            <div className="lg:col-span-4 bg-white border border-[#EFE8DF] rounded-3xl p-4 sm:p-6 md:p-8 shadow-sm space-y-6 lg:sticky lg:top-24">
               <h2 className="text-lg font-extrabold text-[#281C19] border-b border-[#EFE8DF]/60 pb-3 uppercase tracking-wider text-xs">
                 Order Summary
               </h2>
@@ -192,9 +192,9 @@ export default function CartPage() {
                 <hr className="border-[#EFE8DF]/60" />
 
                 {/* Total */}
-                <div className="flex justify-between items-baseline text-sm">
-                  <span className="font-bold text-[#281C19]">Estimated Order Total</span>
-                  <span className="text-lg md:text-xl font-black text-[#8C6239]">
+                <div className="flex justify-between items-baseline gap-3 text-sm">
+                  <span className="min-w-0 font-bold text-[#281C19]">Estimated Order Total</span>
+                  <span className="shrink-0 text-lg md:text-xl font-black text-[#8C6239]">
                     ₹{total.toLocaleString("en-IN")}
                   </span>
                 </div>

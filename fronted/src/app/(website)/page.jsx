@@ -26,7 +26,7 @@ export default function page() {
         buttons={
           <>
             <Link
-              href="/store"
+              href="/store#catalog-layout"
               className="bg-[#8C6239] text-[#FAF7F2] hover:bg-[#724E2B] transition-all duration-300 font-semibold px-6 py-3 rounded text-sm md:text-base flex items-center gap-2 group/btn hover:scale-[1.03] hover:shadow-lg hover:shadow-[#8C6239]/25"
             >
               Shop Collection
@@ -35,7 +35,7 @@ export default function page() {
               </span>
             </Link>
             <Link
-              href="/lookbook"
+              href="#lookbook"
               className="border border-[#FAF7F2]/30 hover:border-[#FAF7F2] text-[#FAF7F2] hover:bg-[#FAF7F2] hover:text-[#281C19] transition-all duration-300 font-semibold px-6 py-3 rounded text-sm md:text-base hover:scale-[1.03] hover:shadow-lg"
             >
               View Lookbook

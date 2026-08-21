@@ -42,11 +42,11 @@ const sendConflict = (res, message = "Data already exists") => {
 };
 
 // server error
-const sendServerError = (res, error) => {
-  console.error(error);
+const sendServerError = (res, message = "Internal server error") => {
+  console.error(message);
   return res.status(500).json({
     success: false,
-    message: "Internal server error"
+    message
   });
 };
 

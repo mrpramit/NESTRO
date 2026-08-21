@@ -6,6 +6,7 @@ import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import Hero from "@/components/common/Hero";
 import { fetchCategories, fetchProducts, fetchRooms } from "@/utils/api";
 import ProductCard from "@/components/website/ProductCard";
+import ProductCardSkeleton from "@/components/website/ProductCardSkeleton";
 import { MOCK_PRODUCTS, colorSwatches, materialsList, roomFallback } from "@/utils/mockData";
 
 function StoreContent() {
@@ -211,13 +212,13 @@ function StoreContent() {
         }
         description="Timeless furniture crafted for elegant spaces. Designed with intention, built to endure."
         buttons={
-          <a
+          <Link
             href="#catalog-layout"
             className="bg-[#8C6239] text-[#FAF7F2] hover:bg-[#724E2B] transition-all duration-300 font-semibold px-6 py-3 rounded text-sm md:text-base flex items-center gap-2 group/btn hover:scale-[1.03] hover:shadow-lg hover:shadow-[#8C6239]/25 cursor-pointer"
           >
             Explore Collection
             <span className="transform group-hover/btn:translate-x-2 transition-transform duration-200">→</span>
-          </a>
+          </Link>
         }
         illustration={storeHeroIllustration}
       />
@@ -227,7 +228,7 @@ function StoreContent() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
           
           {/* Left Sidebar Filter panel */}
-          <aside className="bg-white border border-[#EFE8DF] rounded-[24px] p-6 space-y-6 shadow-sm sticky top-24 self-start">
+          <aside className="hidden lg:block bg-white border border-[#EFE8DF] rounded-[24px] p-6 space-y-6 shadow-sm sticky top-24 self-start">
             <span className="text-[10px] font-bold text-[#8A7973] uppercase tracking-wider block border-b border-[#EFE8DF]/60 pb-3">
               FILTERS
             </span>
@@ -469,9 +470,10 @@ function StoreContent() {
 
             {/* Products grid display */}
             {loading ? (
-              <div className="flex flex-col items-center justify-center py-24 gap-3 bg-white border border-[#EFE8DF] rounded-[24px]">
-                <div className="w-8 h-8 border-3 border-[#8C6239] border-t-transparent rounded-full animate-spin" />
-                <span className="text-sm font-semibold text-[#8A7973]">Loading products catalog...</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" aria-busy="true">
+                {Array.from({ length: 6 }).map((_, index) => (
+                  <ProductCardSkeleton key={index} />
+                ))}
               </div>
             ) : filteredProducts.length === 0 ? (
               <div className="text-center py-20 bg-white border border-[#EFE8DF] rounded-[24px] p-8 shadow-sm">

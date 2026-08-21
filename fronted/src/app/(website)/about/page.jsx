@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import Hero from "@/components/common/Hero";
 import { cloudinaryAssets } from "@/utils/cloudinaryAssets";
 
@@ -122,6 +123,23 @@ export default function AboutPage() {
           </>
         }
         description="Founded in 2018, Nestro was born from a belief that beautiful furniture shouldn't be a luxury. We work directly with master craftsmen across India and Scandinavia to bring you pieces that are honest in material, thoughtful in design, and built to outlast trends."
+        buttons={
+          <>
+            <Link
+              href="/store#catalog-layout"
+              className="bg-[#8C6239] text-[#FAF7F2] hover:bg-[#724E2B] transition-all duration-300 font-semibold px-6 py-3 rounded text-sm md:text-base flex items-center gap-2 group/btn hover:scale-[1.03] hover:shadow-lg hover:shadow-[#8C6239]/25"
+            >
+              Explore Collection
+              <span className="transform group-hover/btn:translate-x-2 transition-transform duration-200">â†’</span>
+            </Link>
+            <Link
+              href="#our-team"
+              className="border border-[#FAF7F2]/30 hover:border-[#FAF7F2] text-[#FAF7F2] hover:bg-[#FAF7F2] hover:text-[#281C19] transition-all duration-300 font-semibold px-6 py-3 rounded text-sm md:text-base hover:scale-[1.03] hover:shadow-lg"
+            >
+              Meet Our Team
+            </Link>
+          </>
+        }
         image={cloudinaryAssets["about-hero.png"]}
       />
 
@@ -180,7 +198,7 @@ export default function AboutPage() {
       </section>
 
       {/* Our Team Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-12">
+      <section id="our-team" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-12">
         {/* Title Header */}
         <div className="space-y-1 mb-8 text-left">
           <span className="text-[10px] md:text-xs font-bold tracking-[0.2em] text-[#8C6239] uppercase block">

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { fetchProducts } from "@/utils/api";
 import { cloudinaryAssets } from "@/utils/cloudinaryAssets";
+import ProductCardSkeleton from "./ProductCardSkeleton";
 
 // Custom vector graphics matching the mockup illustrations
 const JustLandedIllustration = ({ type = "" }) => {
@@ -134,7 +135,7 @@ export default function JustLanded() {
   }, []);
 
   return (
-    <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10">
+    <section id="lookbook" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10">
       {/* Header Row */}
       <div className="flex items-end justify-between mb-6">
         <div className="space-y-0.5">
@@ -198,7 +199,9 @@ export default function JustLanded() {
 
         {/* Middle Column - Stacked Small Cards (Dynamic height grids) */}
         <div className="lg:col-span-1 grid grid-rows-2 gap-4 h-full">
-          {newArrivals.map((product, idx) => {
+          {loading
+            ? Array.from({ length: 2 }).map((_, index) => <ProductCardSkeleton key={index} compact />)
+            : newArrivals.map((product, idx) => {
             const ratingStars = product.rating || (idx === 0 ? 5 : 4);
             return (
               <Link
@@ -261,7 +264,7 @@ export default function JustLanded() {
                 </div>
               </Link>
             );
-          })}
+            })}
         </div>
 
         {/* Right Column - Stacked Promo Banners */}

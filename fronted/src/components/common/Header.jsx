@@ -106,7 +106,7 @@ export default function Header() {
       {/* Announcement Bar */}
       <div className="w-full bg-[#3E2A24] py-2 px-4 text-center">
         <p className="text-[10px] md:text-xs font-semibold tracking-widest text-[#FDFBF7] uppercase">
-          Free shipping on all orders over $150 | Code: NESTRO10
+          Free shipping on all orders over ₹15000 | Code: NESTRO10
         </p>
       </div>
 

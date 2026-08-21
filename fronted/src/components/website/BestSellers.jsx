@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { fetchProducts } from "@/utils/api";
+import ProductCardSkeleton from "./ProductCardSkeleton";
 
 // Elegant flat vector illustrations to match the mockup style if no product thumbnail exists
 const ProductIllustration = ({ name = "", category = "" }) => {
@@ -188,7 +189,9 @@ export default function BestSellers() {
 
       {/* Products Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {products.map((product, idx) => {
+        {loading
+          ? Array.from({ length: 4 }).map((_, index) => <ProductCardSkeleton key={index} />)
+          : products.map((product, idx) => {
           // Determine badge
           const discount = product.discount;
           const hasDiscount = discount > 0;
@@ -271,7 +274,7 @@ export default function BestSellers() {
               </div>
             </Link>
           );
-        })}
+          })}
       </div>
     </section>
   );

@@ -190,10 +190,22 @@ export default function Categories() {
 
   if (loading) {
     return (
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-        <div className="flex items-center justify-center gap-2 py-10">
-          <div className="w-5 h-5 border-2 border-[#8C6239] border-t-transparent rounded-full animate-spin" />
-          <span className="text-sm font-medium text-[#8A7973]">Loading categories...</span>
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10" aria-busy="true">
+        <div className="flex items-center justify-between mb-4 px-1">
+          <div className="h-5 w-36 rounded bg-[#F3ECE4] animate-pulse" />
+          <div className="flex gap-2">
+            <div className="w-8 h-8 rounded-full bg-[#F3ECE4] animate-pulse" />
+            <div className="w-8 h-8 rounded-full bg-[#F3ECE4] animate-pulse" />
+          </div>
+        </div>
+        <div className="flex gap-4 md:gap-5 overflow-hidden pb-4">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <div key={index} className="min-w-[135px] sm:min-w-[150px] h-[164px] rounded-[18px] border border-[#EFE8DF] bg-white p-5 flex flex-col items-center justify-center gap-3 animate-pulse">
+              <div className="w-12 h-12 rounded-full bg-[#F3ECE4]" />
+              <div className="h-3 w-20 rounded bg-[#F3ECE4]" />
+              <div className="h-2 w-12 rounded bg-[#F3ECE4]" />
+            </div>
+          ))}
         </div>
       </section>
     );
